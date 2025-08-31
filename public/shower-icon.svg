@@ -1,0 +1,34 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="512" height="512" rx="64" fill="#3b82f6"/>
+  <g transform="translate(128, 128)">
+    <!-- Shower head -->
+    <rect x="80" y="40" width="96" height="24" rx="12" fill="white"/>
+    <rect x="88" y="48" width="80" height="8" rx="4" fill="#3b82f6"/>
+    
+    <!-- Shower arm -->
+    <rect x="168" y="32" width="8" height="32" fill="white"/>
+    <rect x="176" y="24" width="32" height="8" fill="white"/>
+    
+    <!-- Water drops -->
+    <circle cx="96" cy="88" r="3" fill="white" opacity="0.8"/>
+    <circle cx="112" cy="96" r="3" fill="white" opacity="0.9"/>
+    <circle cx="128" cy="88" r="3" fill="white" opacity="0.7"/>
+    <circle cx="144" cy="104" r="3" fill="white" opacity="0.8"/>
+    <circle cx="160" cy="96" r="3" fill="white" opacity="0.9"/>
+    
+    <circle cx="104" cy="120" r="2" fill="white" opacity="0.6"/>
+    <circle cx="120" cy="128" r="2" fill="white" opacity="0.7"/>
+    <circle cx="136" cy="120" r="2" fill="white" opacity="0.8"/>
+    <circle cx="152" cy="136" r="2" fill="white" opacity="0.6"/>
+    
+    <circle cx="112" cy="152" r="2" fill="white" opacity="0.5"/>
+    <circle cx="128" cy="160" r="2" fill="white" opacity="0.6"/>
+    <circle cx="144" cy="152" r="2" fill="white" opacity="0.7"/>
+    
+    <!-- Person silhouette -->
+    <circle cx="128" cy="200" r="16" fill="white" opacity="0.9"/>
+    <rect x="120" y="216" width="16" height="40" rx="8" fill="white" opacity="0.9"/>
+    <rect x="112" y="232" width="8" height="32" rx="4" fill="white" opacity="0.9"/>
+    <rect x="136" y="232" width="8" height="32" rx="4" fill="white" opacity="0.9"/>
+  </g>
+</svg>
