@@ -1,5 +1,5 @@
 import React, { type ReactElement } from 'react'
-import { render, type RenderOptions } from '@testing-library/react'
+import { render, renderHook as originalRenderHook, type RenderOptions } from '@testing-library/react'
 import { vi } from 'vitest'
 import { AppProvider } from '../stores/AppContext'
 import { ToastProvider } from '../components/toast'
@@ -42,6 +42,14 @@ const customRender = (
 
 export * from '@testing-library/react'
 export { customRender as render }
+
+// Custom renderHook with providers
+export const renderHook = (hook: () => any, options?: any) => {
+  return originalRenderHook(hook, {
+    wrapper: AllTheProviders,
+    ...options
+  })
+}
 
 // Test utilities for mocking browser APIs
 export const mockNotificationAPI = () => {

@@ -10,8 +10,8 @@ export default defineConfig({
   },
   test: {
     globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./src/test/setup.ts'],
+    environment: 'happy-dom',
+    setupFiles: ['./src/test/simple-setup.ts'],
     exclude: ['**/node_modules/**', '**/e2e/**'],
   },
 })

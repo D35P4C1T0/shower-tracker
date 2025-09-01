@@ -3,6 +3,14 @@ import { getTimeDifference, formatTimeDifference, formatTimeSince } from '../uti
 
 describe('Time Utilities', () => {
   describe('getTimeDifference', () => {
+    beforeEach(() => {
+      vi.useFakeTimers()
+    })
+
+    afterEach(() => {
+      vi.useRealTimers()
+      vi.restoreAllMocks()
+    })
     it('should calculate time difference correctly', () => {
       const from = new Date('2024-01-01T10:00:00Z')
       const to = new Date('2024-01-01T11:00:00Z')
@@ -15,18 +23,10 @@ describe('Time Utilities', () => {
       const from = new Date('2024-01-01T10:00:00Z')
       const mockNow = new Date('2024-01-01T11:00:00Z')
       
-      const originalDate = Date
-      vi.spyOn(global, 'Date').mockImplementation(((...args: any[]) => {
-        if (args.length === 0) {
-          return mockNow
-        }
-        return new originalDate(...(args as ConstructorParameters<typeof Date>))
-      }) as any)
+      vi.setSystemTime(mockNow)
 
       const diff = getTimeDifference(from)
       expect(diff).toBe(60 * 60 * 1000) // 1 hour in milliseconds
-
-      vi.restoreAllMocks()
     })
   })
 
@@ -77,13 +77,12 @@ describe('Time Utilities', () => {
   })
 
   describe('formatTimeSince', () => {
-    let originalDate: DateConstructor
-
     beforeEach(() => {
-      originalDate = Date
+      vi.useFakeTimers()
     })
 
     afterEach(() => {
+      vi.useRealTimers()
       vi.restoreAllMocks()
     })
 
@@ -91,12 +90,7 @@ describe('Time Utilities', () => {
       const mockNow = new Date('2024-01-01T11:00:00Z')
       const pastDate = new Date('2024-01-01T10:00:00Z')
       
-      vi.spyOn(global, 'Date').mockImplementation(((...args: any[]) => {
-        if (args.length === 0) {
-          return mockNow
-        }
-        return new originalDate(...(args as ConstructorParameters<typeof Date>))
-      }) as any)
+      vi.setSystemTime(mockNow)
 
       const result = formatTimeSince(pastDate)
       expect(result).toBe('1 hour ago')
@@ -115,12 +109,7 @@ describe('Time Utilities', () => {
         const mockNow = new Date(testCase.mockTime)
         const pastDate = new Date(testCase.pastTime)
         
-        vi.spyOn(global, 'Date').mockImplementation(((...args: any[]) => {
-          if (args.length === 0) {
-            return mockNow
-          }
-          return new originalDate(...(args as ConstructorParameters<typeof Date>))
-        }) as any)
+        vi.setSystemTime(mockNow)
         
         const result = formatTimeSince(pastDate)
         expect(result).toBe(testCase.expected)

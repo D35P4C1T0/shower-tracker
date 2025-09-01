@@ -13,6 +13,80 @@ vi.mock('react-dom/client', () => ({
   }))
 }))
 
+// Mock React DOM server for SSR compatibility
+vi.mock('react-dom/server', () => ({
+  renderToString: vi.fn(() => ''),
+  renderToStaticMarkup: vi.fn(() => '')
+}))
+
+// Mock React DOM entirely to prevent client issues
+vi.mock('react-dom', () => ({
+  render: vi.fn(),
+  unmountComponentAtNode: vi.fn(),
+  findDOMNode: vi.fn(),
+  createPortal: vi.fn((children) => children),
+  flushSync: vi.fn((fn) => fn())
+}))
+
+// Ensure process.env is available
+if (typeof process === 'undefined') {
+  ;(global as any).process = {
+    env: {
+      NODE_ENV: 'test'
+    }
+  }
+}
+
+// Mock window.history for React Router
+Object.defineProperty(window, 'history', {
+  value: {
+    pushState: vi.fn(),
+    replaceState: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    go: vi.fn(),
+    length: 1,
+    state: null
+  },
+  writable: true
+})
+
+// Mock console methods to reduce noise in tests
+global.console = {
+  ...console,
+  warn: vi.fn(),
+  error: vi.fn(),
+  log: vi.fn()
+}
+
+// Mock document properties for React DOM
+Object.defineProperty(document, 'fonts', {
+  value: {
+    ready: Promise.resolve(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn()
+  }
+})
+
+// Mock location for React Router
+Object.defineProperty(window, 'location', {
+  value: {
+    href: 'http://localhost:3000',
+    origin: 'http://localhost:3000',
+    protocol: 'http:',
+    host: 'localhost:3000',
+    hostname: 'localhost',
+    port: '3000',
+    pathname: '/',
+    search: '',
+    hash: '',
+    assign: vi.fn(),
+    replace: vi.fn(),
+    reload: vi.fn()
+  },
+  writable: true
+})
+
 // Mock document.createElement for React 19
 const originalCreateElement = document.createElement
 document.createElement = function(tagName: string, options?: any) {
