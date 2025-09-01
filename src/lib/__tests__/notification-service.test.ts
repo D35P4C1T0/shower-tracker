@@ -243,16 +243,20 @@ describe('NotificationService', () => {
   describe('shouldSendNotification', () => {
     const mockSettings: UserSettings = {
       theme: 'light',
+      firstDayOfWeek: 0,
       notificationsEnabled: true,
-      reminderThreshold: 24,
-      language: 'en'
+      notificationThresholdDays: 24,
+      projectInfo: {
+        githubRepo: 'test/repo',
+        author: 'Test Author'
+      }
     }
 
     it('should return false when notifications disabled', () => {
       const settings = { ...mockSettings, notificationsEnabled: false }
       const result = NotificationService.shouldSendNotification(
-        new Date(),
         settings,
+        new Date(),
         new Date()
       )
       
@@ -263,8 +267,8 @@ describe('NotificationService', () => {
       mockNotification.permission = 'denied'
       
       const result = NotificationService.shouldSendNotification(
-        new Date(),
         mockSettings,
+        new Date(),
         new Date()
       )
       
@@ -298,9 +302,38 @@ describe('NotificationService', () => {
     })
 
     it('should return true when threshold exceeded and no recent check', () => {
-      mockNotification.permission = 'granted'
+      const mockNotification = {
+        permission: 'granted' as NotificationPermission
+      }
+      Object.defineProperty(window, 'Notification', {
+        writable: true,
+        value: mockNotification,
+        configurable: true
+      })
+      
+      // Ensure navigator.serviceWorker is available for isSupported check
+      Object.defineProperty(navigator, 'serviceWorker', {
+        writable: true,
+        value: {
+          register: vi.fn().mockResolvedValue({}),
+          ready: Promise.resolve({}),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+        },
+      })
+      
       const now = new Date()
-      const lastShower = new Date(now.getTime() - 25 * 60 * 60 * 1000) // 25 hours ago
+      const lastShower = new Date(now.getTime() - 25 * 24 * 60 * 60 * 1000) // 25 days ago
+      
+      // Debug the conditions
+      expect(NotificationService.isSupported()).toBe(true)
+      expect(NotificationService.getPermission()).toBe('granted')
+      expect(mockSettings.notificationsEnabled).toBe(true)
+      expect(mockSettings.notificationThresholdDays).toBe(24)
+      
+      const timeSinceLastShower = now.getTime() - lastShower.getTime()
+      const daysSinceLastShower = timeSinceLastShower / (1000 * 60 * 60 * 24)
+      expect(daysSinceLastShower).toBeGreaterThan(24)
       
       const result = NotificationService.shouldSendNotification(
         mockSettings,
@@ -314,7 +347,7 @@ describe('NotificationService', () => {
     it('should return false when recent notification check', () => {
       mockNotification.permission = 'granted'
       const now = new Date()
-      const lastShower = new Date(now.getTime() - 25 * 60 * 60 * 1000) // 25 hours ago
+      const lastShower = new Date(now.getTime() - 25 * 24 * 60 * 60 * 1000) // 25 days ago
       const lastCheck = new Date(now.getTime() - 1 * 60 * 60 * 1000) // 1 hour ago
       
       const result = NotificationService.shouldSendNotification(
@@ -327,9 +360,28 @@ describe('NotificationService', () => {
     })
 
     it('should return true when last check was over 12 hours ago', () => {
-      mockNotification.permission = 'granted'
+      const mockNotification = {
+        permission: 'granted' as NotificationPermission
+      }
+      Object.defineProperty(window, 'Notification', {
+        writable: true,
+        value: mockNotification,
+        configurable: true
+      })
+      
+      // Ensure navigator.serviceWorker is available for isSupported check
+      Object.defineProperty(navigator, 'serviceWorker', {
+        writable: true,
+        value: {
+          register: vi.fn().mockResolvedValue({}),
+          ready: Promise.resolve({}),
+          addEventListener: vi.fn(),
+          removeEventListener: vi.fn(),
+        },
+      })
+      
       const now = new Date()
-      const lastShower = new Date(now.getTime() - 25 * 60 * 60 * 1000) // 25 hours ago
+      const lastShower = new Date(now.getTime() - 25 * 24 * 60 * 60 * 1000) // 25 days ago
       const lastCheck = new Date(now.getTime() - 13 * 60 * 60 * 1000) // 13 hours ago
       
       const result = NotificationService.shouldSendNotification(

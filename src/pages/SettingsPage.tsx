@@ -18,7 +18,6 @@ export function SettingsPage() {
     updateFirstDayOfWeek,
     toggleNotifications,
     updateNotificationThreshold,
-    updateProjectInfo,
     isLoading,
     error
   } = useSettings()
@@ -36,16 +35,10 @@ export function SettingsPage() {
   const { success, error: showError } = useToast()
 
   const [notificationThreshold, setNotificationThreshold] = useState(settings.notificationThresholdDays.toString())
-  const [githubRepo, setGithubRepo] = useState(settings.projectInfo.githubRepo)
-  const [author, setAuthor] = useState(settings.projectInfo.author)
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false)
 
   // Update local state when settings change
   useEffect(() => {
     setNotificationThreshold(settings.notificationThresholdDays.toString())
-    setGithubRepo(settings.projectInfo.githubRepo)
-    setAuthor(settings.projectInfo.author)
-    setHasUnsavedChanges(false)
   }, [settings])
 
   const handleFirstDayOfWeekChange = async (value: string) => {
@@ -86,48 +79,24 @@ export function SettingsPage() {
     await testNotification()
   }
 
-  const handleNotificationThresholdChange = (value: string) => {
-    setNotificationThreshold(value)
-    setHasUnsavedChanges(true)
-  }
-
-  const handleGithubRepoChange = (value: string) => {
-    setGithubRepo(value)
-    setHasUnsavedChanges(true)
-  }
-
-  const handleAuthorChange = (value: string) => {
-    setAuthor(value)
-    setHasUnsavedChanges(true)
-  }
-
-  const handleSaveProjectInfo = async () => {
-    const threshold = parseInt(notificationThreshold, 10)
+  const handleNotificationThresholdChange = async (value: string) => {
+    const threshold = parseInt(value, 10)
     if (isNaN(threshold) || threshold < 1) {
       showError('Invalid threshold', 'Please enter a valid number of days (1 or more).')
       return
     }
 
     try {
-      await Promise.all([
-        updateNotificationThreshold(threshold),
-        updateProjectInfo({
-          githubRepo,
-          author
-        })
-      ])
-      setHasUnsavedChanges(false)
-      success('Settings saved', 'Your preferences have been updated successfully.')
+      await updateNotificationThreshold(threshold)
+      setNotificationThreshold(value)
+      success('Settings saved', 'Notification threshold updated successfully.')
     } catch (error) {
-      console.error('Failed to save settings:', error)
-      showError('Failed to save settings', 'Could not save your changes. Please try again.')
+      console.error('Failed to save notification threshold:', error)
+      showError('Failed to save setting', 'Could not update notification threshold. Please try again.')
     }
   }
 
-  const isThresholdValid = () => {
-    const threshold = parseInt(notificationThreshold, 10)
-    return !isNaN(threshold) && threshold >= 1
-  }
+
 
   if (isLoading) {
     return <SettingsSkeleton />
@@ -282,7 +251,8 @@ export function SettingsPage() {
                     min="1"
                     max="30"
                     value={notificationThreshold}
-                    onChange={(e) => handleNotificationThresholdChange(e.target.value)}
+                    onBlur={(e) => handleNotificationThresholdChange(e.target.value)}
+                    onChange={(e) => setNotificationThreshold(e.target.value)}
                     className="w-20"
                   />
                 </div>
@@ -297,60 +267,7 @@ export function SettingsPage() {
             </div>
           </div>
 
-          {/* Project Information */}
-          <div className="space-y-3">
-            <Label className="text-base font-medium">Project Information</Label>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="github-repo" className="flex items-center gap-2">
-                  <Github className="h-4 w-4" />
-                  GitHub Repository
-                </Label>
-                <Input
-                  id="github-repo"
-                  type="url"
-                  placeholder="https://github.com/username/repo"
-                  value={githubRepo}
-                  onChange={(e) => handleGithubRepoChange(e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Link to the project's GitHub repository
-                </p>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="author" className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Author
-                </Label>
-                <Input
-                  id="author"
-                  type="text"
-                  placeholder="Your name"
-                  value={author}
-                  onChange={(e) => handleAuthorChange(e.target.value)}
-                />
-                <p className="text-sm text-muted-foreground">
-                  Author or maintainer of this app
-                </p>
-              </div>
-
-              {hasUnsavedChanges && (
-                <div className="flex items-center gap-2 pt-2">
-                  <Button
-                    onClick={handleSaveProjectInfo}
-                    disabled={!isThresholdValid()}
-                    size="sm"
-                  >
-                    Save Changes
-                  </Button>
-                  <p className="text-sm text-muted-foreground">
-                    You have unsaved changes
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
         </CardContent>
       </Card>
 

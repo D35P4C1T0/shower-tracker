@@ -54,10 +54,7 @@ export function useSettings() {
     await updateSetting('notificationThresholdDays', days);
   }, [updateSetting]);
 
-  // Project info helpers
-  const updateProjectInfo = useCallback(async (projectInfo: UserSettings['projectInfo']) => {
-    await updateSetting('projectInfo', projectInfo);
-  }, [updateSetting]);
+
 
   // Notification check helpers
   const updateLastNotificationCheck = useCallback(async (date: Date) => {
@@ -137,7 +134,7 @@ export function useSettings() {
     updateFirstDayOfWeek,
     toggleNotifications,
     updateNotificationThreshold,
-    updateProjectInfo,
+
     updateLastNotificationCheck,
     shouldSendNotification,
     getEffectiveTheme,

@@ -36,7 +36,7 @@ describe('PWAService', () => {
     mockNotificationRequestPermission = vi.fn().mockResolvedValue('granted');
     
     // Create a mock Notification constructor
-    const MockNotification = vi.fn();
+    const MockNotification = vi.fn() as any;
     MockNotification.permission = 'default';
     MockNotification.requestPermission = mockNotificationRequestPermission;
     
