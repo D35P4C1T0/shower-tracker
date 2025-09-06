@@ -6,14 +6,14 @@ set -e
 echo "🚀 Testing deployment readiness..."
 
 echo "📦 Installing dependencies..."
-npm ci --silent
+pnpm install --frozen-lockfile --silent
 
 echo "🧪 Running unit tests (critical for deployment)..."
-npm run test
+pnpm run test
 
 echo "🏗️  Building for GitHub Pages..."
 export NODE_ENV=production
-npm run build:github
+pnpm run build:github
 
 echo "✅ Checking build output..."
 if [ -f "dist/index.html" ] && [ -f "dist/manifest.webmanifest" ] && [ -f "dist/sw.js" ]; then
