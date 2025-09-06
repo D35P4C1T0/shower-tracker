@@ -8,19 +8,22 @@ beforeEach(() => {
   vi.clearAllMocks();
   
   // Mock navigator
+  const mockNavigator = {
+    userAgent: '',
+    standalone: false
+  };
+  
   Object.defineProperty(global, 'navigator', {
-    value: {
-      userAgent: '',
-      standalone: false
-    },
+    value: mockNavigator,
     writable: true,
     configurable: true
   });
   
-  // Mock window
+  // Mock window with navigator reference
   Object.defineProperty(global, 'window', {
     value: {
       ...originalWindow,
+      navigator: mockNavigator,
       matchMedia: vi.fn().mockReturnValue({
         matches: false,
         addEventListener: vi.fn(),

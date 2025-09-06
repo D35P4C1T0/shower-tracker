@@ -21,7 +21,7 @@ export function detectPlatform(): PlatformInfo {
   
   // Check if app is already running in standalone mode
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator as any).standalone === true ||
+    (window.navigator && (window.navigator as any).standalone === true) ||
     document.referrer.includes('android-app://');
 
   // Check if installation is possible
