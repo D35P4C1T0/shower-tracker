@@ -18,7 +18,7 @@ export function ShowerDetails({ date, showers, onClose }: ShowerDetailsProps) {
   };
 
   return (
-    <Card>
+    <Card data-testid="shower-details">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div>
@@ -37,6 +37,7 @@ export function ShowerDetails({ date, showers, onClose }: ShowerDetailsProps) {
               onClick={onClose}
               className="text-muted-foreground hover:text-foreground transition-colors"
               aria-label="Close details"
+              data-testid="close-modal"
             >
               ✕
             </button>

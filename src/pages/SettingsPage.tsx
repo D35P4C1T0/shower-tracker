@@ -103,7 +103,7 @@ export function SettingsPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="settings-page">
       <Card>
         <CardHeader>
           <CardTitle>Settings</CardTitle>
@@ -230,6 +230,7 @@ export function SettingsPage() {
                 </div>
                 <Switch
                   id="notifications-enabled"
+                  data-testid="notification-toggle"
                   checked={settings.notificationsEnabled}
                   onCheckedChange={handleNotificationsToggle}
                   disabled={!isSupported() || (!hasPermission && !settings.notificationsEnabled)}

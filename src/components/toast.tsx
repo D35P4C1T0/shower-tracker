@@ -133,7 +133,7 @@ function ToastItem({ toast }: { toast: Toast }) {
   };
 
   return (
-    <Card className={cn('animate-in slide-in-from-right-full', variants[toast.type])}>
+    <Card className={cn('animate-in slide-in-from-right-full', variants[toast.type])} data-testid="toast">
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <Icon className={cn('h-5 w-5 mt-0.5 flex-shrink-0', iconColors[toast.type])} />

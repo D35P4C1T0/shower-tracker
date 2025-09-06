@@ -98,7 +98,7 @@ export function HomePage() {
                   formatTime={formatTimeSinceLastShower}
                   isLoading={false}
                 />
-                <p className="text-sm text-muted-foreground mt-1">
+                <p className="text-sm text-muted-foreground mt-1" data-testid="last-shower-time">
                   Last shower: {new Date(lastShower!.timestamp).toLocaleString()}
                 </p>
               </>
