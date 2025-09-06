@@ -56,7 +56,7 @@ A modern Progressive Web App (PWA) for tracking your shower habits and maintaini
 
 ### Prerequisites
 - Node.js 18+ 
-- npm or yarn
+- pnpm 9+ (recommended) or npm/yarn
 
 ### Setup
 ```bash
@@ -65,33 +65,33 @@ git clone https://github.com/D35P4C1T0/shower-tracker.git
 cd shower-tracker
 
 # Install dependencies
-npm install
+pnpm install
 
 # Start development server
-npm run dev
+pnpm run dev
 ```
 
 ### Available Scripts
 ```bash
-npm run dev          # Start development server
-npm run build        # Build for production
-npm run build:github # Build for GitHub Pages
-npm run test         # Run unit tests
-npm run test:e2e     # Run end-to-end tests
-npm run lint         # Run ESLint
-npm run preview      # Preview production build
+pnpm run dev          # Start development server
+pnpm run build        # Build for production
+pnpm run build:github # Build for GitHub Pages
+pnpm run test         # Run unit tests
+pnpm run test:e2e     # Run end-to-end tests
+pnpm run lint         # Run ESLint
+pnpm run preview      # Preview production build
 ```
 
 ### Testing
 ```bash
 # Run all tests
-npm run test
+pnpm run test
 
 # Test deployment readiness
 ./test-deployment.sh
 
 # Run E2E tests (requires browser setup)
-npm run test:e2e
+pnpm run test:e2e
 ```
 
 ## 📊 Project Stats
@@ -116,8 +116,8 @@ npm run test:e2e
 
 ### Manual Build
 ```bash
-npm run build:github  # For GitHub Pages
-npm run build         # For other platforms
+pnpm run build:github  # For GitHub Pages
+pnpm run build         # For other platforms
 ```
 
 ## 🤝 Contributing
