@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "packageManager": "pnpm@9.0.0",
   "scripts": {
     "dev": "vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
@@ -14,12 +15,12 @@
     "test:watch": "vitest --config vitest.config.ts",
     "test:ui": "vitest --ui --config vitest.config.ts",
     "test:e2e": "playwright test",
-    "test:all": "npm run test && npm run test:e2e",
+    "test:all": "pnpm run test && pnpm run test:e2e",
     "test:deployment": "node scripts/test-deployment.js",
     "audit": "node scripts/lighthouse-audit.js",
-    "audit:build": "npm run build && npm run preview & sleep 3 && node scripts/lighthouse-audit.js http://localhost:4173 && pkill -f 'vite preview'",
+    "audit:build": "pnpm run build && pnpm run preview & sleep 3 && node scripts/lighthouse-audit.js http://localhost:4173 && pkill -f 'vite preview'",
     "test:cross-browser": "node scripts/cross-browser-test.js",
-    "optimize": "npm run build && npm run audit:build"
+    "optimize": "pnpm run build && pnpm run audit:build"
   },
   "dependencies": {
     "@radix-ui/react-dropdown-menu": "^2.1.16",
@@ -29,7 +30,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dexie": "^4.0.8",
-    "lucide-react": "^0.468.0",
+    "lucide-react": "^0.542.0",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "tailwind-merge": "^2.5.4"
@@ -55,10 +56,10 @@
     "jsdom": "^26.0.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.17",
-    "typescript": "~5.8.3",
+    "typescript": "^5.9.2",
     "typescript-eslint": "^8.39.1",
     "vite": "^7.1.2",
     "vite-plugin-pwa": "^1.0.3",
-    "vitest": "^2.1.8"
+    "vitest": "^3.2.4"
   }
 }

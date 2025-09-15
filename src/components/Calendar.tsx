@@ -106,10 +106,10 @@ export function Calendar({ onDayClick }: CalendarProps) {
   };
 
   return (
-    <Card>
+    <Card data-testid="calendar">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xl">
+          <CardTitle className="text-xl" data-testid="calendar-month">
             {getMonthName(currentDate)} {getYear(currentDate)}
           </CardTitle>
           <div className="flex items-center gap-2">
@@ -127,6 +127,7 @@ export function Calendar({ onDayClick }: CalendarProps) {
               onClick={goToPreviousMonth}
               disabled={isLoading}
               aria-label="Previous month"
+              data-testid="prev-month"
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -136,6 +137,7 @@ export function Calendar({ onDayClick }: CalendarProps) {
               onClick={goToNextMonth}
               disabled={isLoading}
               aria-label="Next month"
+              data-testid="next-month"
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
@@ -174,6 +176,7 @@ export function Calendar({ onDayClick }: CalendarProps) {
                   {date && (
                     <button
                       onClick={() => handleDayClick(date)}
+                      data-date={date.toISOString().split('T')[0]}
                       className={cn(
                         "w-full h-full rounded-md border-2 border-transparent",
                         "flex flex-col items-center justify-center",
@@ -181,7 +184,7 @@ export function Calendar({ onDayClick }: CalendarProps) {
                         "hover:bg-accent hover:text-accent-foreground",
                         "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                         isToday(date) && "border-primary bg-primary/10",
-                        hasShowers(date) && "bg-blue-100 dark:bg-blue-900/30",
+                        hasShowers(date) && "bg-blue-100 dark:bg-blue-900/30 has-shower",
                         hasShowers(date) && isToday(date) && "bg-primary/20"
                       )}
                       title={

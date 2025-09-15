@@ -20,10 +20,10 @@ export function OfflineIndicator() {
     <div className="fixed top-0 left-0 right-0 z-50">
       {/* Offline indicator */}
       {!isOnline && (
-        <div className="bg-yellow-500 text-yellow-900 px-4 py-2 text-center text-sm font-medium">
+        <div className="bg-yellow-500 text-yellow-900 px-4 py-2 text-center text-sm font-medium" data-testid="offline-indicator">
           <div className="flex items-center justify-center gap-2">
             <div className="w-2 h-2 bg-yellow-900 rounded-full"></div>
-            You're offline. {isOfflineReady ? 'Core features are still available.' : 'Some features may not work.'}
+            Offline. {isOfflineReady ? 'Core features are still available.' : 'Some features may not work.'}
           </div>
         </div>
       )}

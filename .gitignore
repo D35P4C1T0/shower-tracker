@@ -13,6 +13,10 @@ dist-ssr
 dev-dist
 *.local
 
+# pnpm
+pnpm-lock.yaml
+.pnpm-debug.log
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -23,3 +27,7 @@ dev-dist
 *.njsproj
 *.sln
 *.sw?
+
+# playwright report folder
+playwright-report/*
+test-results/*
