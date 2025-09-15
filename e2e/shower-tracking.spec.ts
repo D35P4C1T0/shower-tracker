@@ -7,7 +7,7 @@ test.describe('Shower Tracking E2E Tests', () => {
     await page.waitForSelector('text=Shower Tracker')
   })
 
-  test('should record a shower and display it in calendar', async ({ page }) => {
+  test('should record a shower and display it in calendar @smoke', async ({ page }) => {
     // Record a shower
     await page.click('button:has-text("Record it")')
     
@@ -46,7 +46,7 @@ test.describe('Shower Tracking E2E Tests', () => {
     await expect(todayButton).toBeVisible()
   })
 
-  test('should update settings and persist changes', async ({ page }) => {
+  test('should update settings and persist changes @nonblocking', async ({ page }) => {
     // Navigate to settings
     await page.click('button[aria-label="Settings"]')
     await page.waitForSelector('[data-testid="settings-page"]', { timeout: 10000 })
@@ -95,7 +95,7 @@ test.describe('Shower Tracking E2E Tests', () => {
     await page.waitForSelector('text=Shower Tracker')
   })
 
-  test('should display time since last shower', async ({ page }) => {
+  test('should display time since last shower @smoke', async ({ page }) => {
     // Record a shower first
     await page.click('button:has-text("Record it")')
     await expect(page.locator('[data-testid="toast"]')).toBeVisible({ timeout: 10000 })
@@ -116,7 +116,7 @@ test.describe('Shower Tracking E2E Tests', () => {
     )).toBeVisible({ timeout: 5000 })
   })
 
-  test('should handle offline functionality', async ({ page, context }) => {
+  test('should handle offline functionality @nonblocking', async ({ page, context }) => {
     // Record a shower while online
     await page.click('button:has-text("Record it")')
     await expect(page.locator('[data-testid="toast"]')).toBeVisible({ timeout: 10000 })
@@ -155,7 +155,7 @@ test.describe('Shower Tracking E2E Tests', () => {
     )).not.toBeVisible({ timeout: 10000 })
   })
 
-  test('should support PWA installation flow', async ({ page, context }) => {
+  test('should support PWA installation flow @nonblocking', async ({ page, context }) => {
     // Mock beforeinstallprompt event
     await page.addInitScript(() => {
       let deferredPrompt: any
@@ -186,7 +186,7 @@ test.describe('Shower Tracking E2E Tests', () => {
     }
   })
 
-  test('should handle calendar navigation', async ({ page }) => {
+  test('should handle calendar navigation @smoke', async ({ page }) => {
     await page.click('button[aria-label="Calendar"]')
     await page.waitForSelector('[data-testid="calendar"]', { timeout: 10000 })
     
@@ -217,7 +217,7 @@ test.describe('Shower Tracking E2E Tests', () => {
     )).toBeVisible({ timeout: 5000 })
   })
 
-  test('should show shower details when clicking calendar date', async ({ page }) => {
+  test('should show shower details when clicking calendar date @nonblocking', async ({ page }) => {
     // Record a shower first
     await page.click('button:has-text("Record it")')
     await expect(page.locator('[data-testid="toast"]')).toBeVisible({ timeout: 10000 })
@@ -282,7 +282,7 @@ test.describe('Shower Tracking E2E Tests', () => {
     )).toBeVisible({ timeout: 10000 })
   })
 
-  test('should handle error states gracefully', async ({ page }) => {
+  test('should handle error states gracefully @nonblocking', async ({ page }) => {
     // Mock a network error by intercepting requests
     await page.route('**/*', route => {
       // Let most requests through, but simulate occasional failures

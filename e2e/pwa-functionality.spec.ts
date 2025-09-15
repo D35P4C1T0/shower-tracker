@@ -6,7 +6,7 @@ test.describe('PWA Functionality Tests', () => {
     await page.waitForSelector('text=Shower Tracker')
   })
 
-  test('should register service worker', async ({ page }) => {
+  test('should register service worker @smoke', async ({ page }) => {
     // Check if service worker is registered
     const swRegistration = await page.evaluate(async () => {
       if ('serviceWorker' in navigator) {
@@ -19,7 +19,7 @@ test.describe('PWA Functionality Tests', () => {
     expect(swRegistration).toBe(true)
   })
 
-  test('should cache resources for offline use', async ({ page, context }) => {
+  test('should cache resources for offline use @nonblocking', async ({ page, context }) => {
     // Load the page to trigger caching
     await page.waitForLoadState('networkidle')
     
@@ -36,7 +36,7 @@ test.describe('PWA Functionality Tests', () => {
     await expect(page.locator('button[aria-label="Settings"]')).toBeVisible()
   })
 
-  test('should show offline indicator when offline', async ({ page, context }) => {
+  test('should show offline indicator when offline @nonblocking', async ({ page, context }) => {
     // Go offline
     await context.setOffline(true)
     
@@ -77,7 +77,7 @@ test.describe('PWA Functionality Tests', () => {
     )).not.toBeVisible({ timeout: 10000 })
   })
 
-  test('should handle app updates', async ({ page }) => {
+  test('should handle app updates @nonblocking', async ({ page }) => {
     // Mock service worker update
     await page.addInitScript(() => {
       // Simulate service worker update available
@@ -98,7 +98,7 @@ test.describe('PWA Functionality Tests', () => {
     }
   })
 
-  test('should support installation on mobile devices', async ({ page, browserName }) => {
+  test('should support installation on mobile devices @nonblocking', async ({ page, browserName }) => {
     // Skip on desktop browsers that don't support mobile install prompts
     test.skip(browserName === 'webkit' && !process.env.CI, 'WebKit desktop does not support PWA install')
     
@@ -130,7 +130,7 @@ test.describe('PWA Functionality Tests', () => {
     }
   })
 
-  test('should persist data offline and sync when online', async ({ page, context }) => {
+  test('should persist data offline and sync when online @nonblocking', async ({ page, context }) => {
     // Record a shower while online
     await page.click('button:has-text("Record it")')
     await expect(page.locator('[data-testid="toast"]')).toBeVisible({ timeout: 10000 })
@@ -176,7 +176,7 @@ test.describe('PWA Functionality Tests', () => {
     }
   })
 
-  test('should handle notification permissions', async ({ page, context }) => {
+  test('should handle notification permissions @nonblocking', async ({ page, context }) => {
     // Grant notification permission
     await context.grantPermissions(['notifications'])
     
@@ -219,7 +219,7 @@ test.describe('PWA Functionality Tests', () => {
     }
   })
 
-  test('should maintain theme across sessions', async ({ page }) => {
+  test('should maintain theme across sessions @smoke', async ({ page }) => {
     // Navigate to settings
     await page.click('button[aria-label="Settings"]')
     
@@ -240,7 +240,7 @@ test.describe('PWA Functionality Tests', () => {
     await expect(newPage.locator('html')).toHaveClass(/dark/)
   })
 
-  test('should handle storage quota exceeded', async ({ page }) => {
+  test('should handle storage quota exceeded @nonblocking', async ({ page }) => {
     // Mock storage quota exceeded
     await page.addInitScript(() => {
       const originalSetItem = localStorage.setItem

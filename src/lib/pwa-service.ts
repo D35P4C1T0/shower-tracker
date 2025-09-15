@@ -34,7 +34,10 @@ class PWAService {
   async registerServiceWorker(): Promise<void> {
     if ('serviceWorker' in navigator) {
       try {
-        const registration = await navigator.serviceWorker.register('/sw.js');
+        // Use Vite base URL to correctly resolve path under GitHub Pages subpath
+        const baseUrl = (import.meta as any).env?.BASE_URL || '/';
+        const swUrl = `${baseUrl.replace(/\/$/, '')}/sw.js`;
+        const registration = await navigator.serviceWorker.register(swUrl);
         
         // Handle service worker updates
         registration.addEventListener('updatefound', () => {
@@ -60,22 +63,22 @@ class PWAService {
    * Set up network status listeners
    */
   private setupNetworkListeners(): void {
-    const updateNetworkStatus = () => {
+    const emitStatus = (online: boolean) => {
       const status: NetworkStatus = {
-        isOnline: navigator.onLine,
+        isOnline: online,
         isOfflineReady: this.isOfflineReady()
       };
-      
       if (this.networkCallback) {
         this.networkCallback(status);
       }
     };
 
-    window.addEventListener('online', updateNetworkStatus);
-    window.addEventListener('offline', updateNetworkStatus);
-    
-    // Initial status
-    updateNetworkStatus();
+    // Use explicit boolean based on event rather than navigator.onLine, which can be unreliable in WebKit headless
+    window.addEventListener('online', () => emitStatus(true));
+    window.addEventListener('offline', () => emitStatus(false));
+
+    // Initial status from navigator as a starting point
+    emitStatus(navigator.onLine);
   }
 
   /**
@@ -204,11 +207,13 @@ class PWAService {
         const cache = await caches.open('shower-tracker-data-v1');
         
         // Cache essential API endpoints or data
+        const baseUrl = (import.meta as any).env?.BASE_URL || '/';
+        const withBase = (p: string) => `${baseUrl.replace(/\/$/, '')}/${p.replace(/^\//, '')}`;
         const essentialUrls = [
-          '/',
-          '/manifest.json',
-          '/pwa-192x192.png',
-          '/pwa-512x512.png'
+          withBase('/'),
+          withBase('manifest.webmanifest'),
+          withBase('pwa-192x192.png'),
+          withBase('pwa-512x512.png')
         ];
 
         await cache.addAll(essentialUrls);

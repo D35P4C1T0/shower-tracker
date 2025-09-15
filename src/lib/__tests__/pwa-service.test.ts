@@ -201,7 +201,7 @@ describe('PWAService', () => {
       expect(mockCachesOpen).toHaveBeenCalledWith('shower-tracker-data-v1');
       expect(mockCacheAddAll).toHaveBeenCalledWith([
         '/',
-        '/manifest.json',
+        '/manifest.webmanifest',
         '/pwa-192x192.png',
         '/pwa-512x512.png'
       ]);
