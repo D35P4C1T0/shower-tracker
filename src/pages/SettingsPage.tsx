@@ -136,8 +136,8 @@ export function SettingsPage() {
           <div className="space-y-3">
             <Label className="text-base font-medium">Calendar</Label>
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-1">
+              <div className="flex items-center justify-between gap-4">
+                <div className="space-y-1 flex-1">
                   <Label htmlFor="first-day-of-week">First day of week</Label>
                   <p className="text-sm text-muted-foreground">
                     Choose which day starts your week
@@ -147,7 +147,7 @@ export function SettingsPage() {
                   value={settings.firstDayOfWeek.toString()}
                   onValueChange={handleFirstDayOfWeekChange}
                 >
-                  <SelectTrigger className="w-32">
+                  <SelectTrigger className="w-[110px]">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -287,7 +287,7 @@ export function SettingsPage() {
               href="https://github.com/D35P4C1T0/shower-tracker"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-primary hover:underline font-mono"
+              className="text-sm text-primary hover:underline font-mono text-right"
             >
               D35P4C1T0/shower-tracker
             </a>
@@ -302,7 +302,7 @@ export function SettingsPage() {
               href="https://github.com/D35P4C1T0"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-primary hover:underline font-mono"
+              className="text-sm text-primary hover:underline font-mono text-right"
             >
               @D35P4C1T0
             </a>
