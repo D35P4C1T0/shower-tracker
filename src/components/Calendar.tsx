@@ -109,9 +109,14 @@ export function Calendar({ onDayClick }: CalendarProps) {
     <Card data-testid="calendar">
       <CardHeader>
         <div className="flex items-center justify-between">
-          <CardTitle className="text-xl" data-testid="calendar-month">
-            {getMonthName(currentDate)} {getYear(currentDate)}
-          </CardTitle>
+          <div className="flex flex-col">
+            <CardTitle className="text-xl" data-testid="calendar-month">
+              {getMonthName(currentDate)}
+            </CardTitle>
+            <span className="text-xs font-medium text-muted-foreground/70 tracking-wider uppercase mt-0.5" aria-label="Year">
+              {getYear(currentDate)}
+            </span>
+          </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
