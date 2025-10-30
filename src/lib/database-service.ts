@@ -6,6 +6,7 @@ import {
   FallbackMetadataService,
   StorageChecker 
 } from './storage-fallback';
+import { VALIDATION_CONSTANTS } from './constants';
 
 // Default settings
 const DEFAULT_SETTINGS: UserSettings = {
@@ -21,8 +22,30 @@ const DEFAULT_SETTINGS: UserSettings = {
 
 // Shower Entry Operations
 export class ShowerService {
+  // Cache storage type to avoid repeated lookups
+  private static getStorageTypeCache(): 'indexeddb' | 'localstorage' | 'none' {
+    const type = DatabaseService.getStorageType();
+    if (type === null) {
+      throw new Error('Database not initialized. Call DatabaseService.initialize() first.');
+    }
+    return type;
+  }
+
   static async addShower(timestamp: Date = new Date(), notes?: string): Promise<ShowerEntry> {
-    const storageType = DatabaseService.getStorageType();
+    // Input validation
+    if (!(timestamp instanceof Date) || isNaN(timestamp.getTime())) {
+      throw new Error('Invalid timestamp provided');
+    }
+    
+    if (timestamp < VALIDATION_CONSTANTS.MIN_DATE || timestamp > VALIDATION_CONSTANTS.MAX_DATE) {
+      throw new Error('Timestamp is outside valid date range');
+    }
+    
+    if (notes !== undefined && notes.length > VALIDATION_CONSTANTS.MAX_NOTES_LENGTH) {
+      throw new Error(`Notes exceed maximum length of ${VALIDATION_CONSTANTS.MAX_NOTES_LENGTH} characters`);
+    }
+    
+    const storageType = this.getStorageTypeCache();
     
     if (storageType === 'localstorage') {
       return await FallbackShowerService.addShower(timestamp, notes);
@@ -50,7 +73,7 @@ export class ShowerService {
   }
 
   static async getAllShowers(): Promise<ShowerEntry[]> {
-    const storageType = DatabaseService.getStorageType();
+    const storageType = this.getStorageTypeCache();
     
     if (storageType === 'localstorage') {
       return await FallbackShowerService.getAllShowers();
@@ -74,7 +97,16 @@ export class ShowerService {
   }
 
   static async getShowersByDateRange(startDate: Date, endDate: Date): Promise<ShowerEntry[]> {
-    const storageType = DatabaseService.getStorageType();
+    // Input validation
+    if (!(startDate instanceof Date) || !(endDate instanceof Date)) {
+      throw new Error('Invalid date provided');
+    }
+    
+    if (startDate > endDate) {
+      throw new Error('Start date must be before end date');
+    }
+    
+    const storageType = this.getStorageTypeCache();
     
     if (storageType === 'localstorage') {
       return await FallbackShowerService.getShowersByDateRange(startDate, endDate);
@@ -102,7 +134,7 @@ export class ShowerService {
   }
 
   static async getLastShower(): Promise<ShowerEntry | null> {
-    const storageType = DatabaseService.getStorageType();
+    const storageType = this.getStorageTypeCache();
     
     if (storageType === 'localstorage') {
       return await FallbackShowerService.getLastShower();
@@ -128,7 +160,7 @@ export class ShowerService {
   }
 
   static async deleteShower(id: string): Promise<void> {
-    const storageType = DatabaseService.getStorageType();
+    const storageType = this.getStorageTypeCache();
     
     if (storageType === 'localstorage') {
       return await FallbackShowerService.deleteShower(id);
@@ -147,7 +179,25 @@ export class ShowerService {
   }
 
   static async updateShower(id: string, updates: Partial<Omit<ShowerEntry, 'id'>>): Promise<void> {
-    const storageType = DatabaseService.getStorageType();
+    // Input validation
+    if (!id || typeof id !== 'string') {
+      throw new Error('Invalid shower ID');
+    }
+    
+    if (updates.timestamp !== undefined) {
+      if (!(updates.timestamp instanceof Date) || isNaN(updates.timestamp.getTime())) {
+        throw new Error('Invalid timestamp provided');
+      }
+      if (updates.timestamp < VALIDATION_CONSTANTS.MIN_DATE || updates.timestamp > VALIDATION_CONSTANTS.MAX_DATE) {
+        throw new Error('Timestamp is outside valid date range');
+      }
+    }
+    
+    if (updates.notes !== undefined && updates.notes.length > VALIDATION_CONSTANTS.MAX_NOTES_LENGTH) {
+      throw new Error(`Notes exceed maximum length of ${VALIDATION_CONSTANTS.MAX_NOTES_LENGTH} characters`);
+    }
+    
+    const storageType = this.getStorageTypeCache();
     
     if (storageType === 'localstorage') {
       return await FallbackShowerService.updateShower(id, updates);
@@ -168,8 +218,17 @@ export class ShowerService {
 
 // Settings Operations
 export class SettingsService {
+  // Cache storage type to avoid repeated lookups
+  private static getStorageTypeCache(): 'indexeddb' | 'localstorage' | 'none' {
+    const type = DatabaseService.getStorageType();
+    if (type === null) {
+      throw new Error('Database not initialized. Call DatabaseService.initialize() first.');
+    }
+    return type;
+  }
+
   static async getSettings(): Promise<UserSettings> {
-    const storageType = DatabaseService.getStorageType();
+    const storageType = this.getStorageTypeCache();
     
     if (storageType === 'localstorage') {
       return await FallbackSettingsService.getSettings();
@@ -205,7 +264,7 @@ export class SettingsService {
   }
 
   static async saveSettings(settings: UserSettings): Promise<void> {
-    const storageType = DatabaseService.getStorageType();
+    const storageType = this.getStorageTypeCache();
     
     if (storageType === 'localstorage') {
       return await FallbackSettingsService.saveSettings(settings);
@@ -225,9 +284,13 @@ export class SettingsService {
         author: settings.projectInfo.author
       };
 
-      // Clear existing settings and add new ones
-      await db.settings.clear();
-      await db.settings.add(dbSettings);
+      // Use upsert pattern: update existing or add new
+      const existing = await db.settings.toCollection().first();
+      if (existing) {
+        await db.settings.update(existing.id!, dbSettings);
+      } else {
+        await db.settings.add(dbSettings);
+      }
     } catch (error) {
       console.warn('IndexedDB failed, trying localStorage fallback:', error);
       await FallbackSettingsService.saveSettings(settings);
@@ -238,7 +301,7 @@ export class SettingsService {
     key: K,
     value: UserSettings[K]
   ): Promise<void> {
-    const storageType = DatabaseService.getStorageType();
+    const storageType = this.getStorageTypeCache();
     
     if (storageType === 'localstorage') {
       return await FallbackSettingsService.updateSetting(key, value);
@@ -261,8 +324,17 @@ export class SettingsService {
 
 // Metadata Operations
 export class MetadataService {
+  // Cache storage type to avoid repeated lookups
+  private static getStorageTypeCache(): 'indexeddb' | 'localstorage' | 'none' {
+    const type = DatabaseService.getStorageType();
+    if (type === null) {
+      throw new Error('Database not initialized. Call DatabaseService.initialize() first.');
+    }
+    return type;
+  }
+
   static async setMetadata(key: string, value: string): Promise<void> {
-    const storageType = DatabaseService.getStorageType();
+    const storageType = this.getStorageTypeCache();
     
     if (storageType === 'localstorage') {
       return await FallbackMetadataService.setMetadata(key, value);
@@ -294,7 +366,7 @@ export class MetadataService {
   }
 
   static async getMetadata(key: string): Promise<string | null> {
-    const storageType = DatabaseService.getStorageType();
+    const storageType = this.getStorageTypeCache();
     
     if (storageType === 'localstorage') {
       return await FallbackMetadataService.getMetadata(key);
@@ -314,7 +386,7 @@ export class MetadataService {
   }
 
   static async deleteMetadata(key: string): Promise<void> {
-    const storageType = DatabaseService.getStorageType();
+    const storageType = this.getStorageTypeCache();
     
     if (storageType === 'localstorage') {
       return await FallbackMetadataService.deleteMetadata(key);
@@ -333,7 +405,7 @@ export class MetadataService {
   }
 
   static async getLastNotificationCheck(): Promise<Date | null> {
-    const storageType = DatabaseService.getStorageType();
+    const storageType = this.getStorageTypeCache();
     
     if (storageType === 'localstorage') {
       return await FallbackMetadataService.getLastNotificationCheck();
@@ -353,7 +425,7 @@ export class MetadataService {
   }
 
   static async setLastNotificationCheck(date: Date): Promise<void> {
-    const storageType = DatabaseService.getStorageType();
+    const storageType = this.getStorageTypeCache();
     
     if (storageType === 'localstorage') {
       return await FallbackMetadataService.setLastNotificationCheck(date);

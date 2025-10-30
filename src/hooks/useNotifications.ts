@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { useAppContext } from '../stores/AppContext';
 import { NotificationService, type NotificationPermission } from '../lib/notification-service';
 import { MetadataService } from '../lib/database-service';
+import { NOTIFICATION_CONSTANTS } from '../lib/constants';
 
 export function useNotifications() {
   const { state, dispatch } = useAppContext();
@@ -83,19 +84,21 @@ export function useNotifications() {
    * Start periodic notification checking
    */
   const startNotificationChecking = useCallback(() => {
-    // Clear any existing interval
-    if (checkIntervalRef.current) {
+    // Clear any existing interval to prevent memory leaks
+    if (checkIntervalRef.current !== null) {
       clearInterval(checkIntervalRef.current);
+      checkIntervalRef.current = null;
     }
 
     // Check immediately
     checkAndSendNotification();
 
-    // Set up periodic checking every 30 minutes
-    checkIntervalRef.current = setInterval(() => {
+    // Set up periodic checking every N minutes
+    const intervalId = setInterval(() => {
       checkAndSendNotification();
-    }, 30 * 60 * 1000); // 30 minutes
-
+    }, NOTIFICATION_CONSTANTS.CHECK_INTERVAL_MS);
+    
+    checkIntervalRef.current = intervalId;
     console.log('Started notification checking');
   }, [checkAndSendNotification]);
 
@@ -103,7 +106,7 @@ export function useNotifications() {
    * Stop periodic notification checking
    */
   const stopNotificationChecking = useCallback(() => {
-    if (checkIntervalRef.current) {
+    if (checkIntervalRef.current !== null) {
       clearInterval(checkIntervalRef.current);
       checkIntervalRef.current = null;
       console.log('Stopped notification checking');
@@ -184,7 +187,7 @@ export function useNotifications() {
       stopNotificationChecking();
     }
 
-    // Cleanup on unmount
+    // Cleanup on unmount or dependency change - ensures no memory leaks
     return () => {
       stopNotificationChecking();
     };
@@ -196,7 +199,7 @@ export function useNotifications() {
       // Delay initial check to allow UI to settle
       const timeoutId = setTimeout(() => {
         checkAndSendNotification();
-      }, 2000);
+      }, NOTIFICATION_CONSTANTS.INITIAL_CHECK_DELAY_MS);
 
       return () => clearTimeout(timeoutId);
     }
