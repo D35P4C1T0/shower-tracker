@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useAppContext } from '../stores/AppContext';
 import { SettingsService, MetadataService } from '../lib/database-service';
 import type { UserSettings, Theme } from '../types';
+import { NOTIFICATION_CONSTANTS } from '../lib/constants';
 
 export function useSettings() {
   const { state, dispatch } = useAppContext();
@@ -91,8 +92,8 @@ export function useSettings() {
       const timeSinceLastCheck = new Date().getTime() - new Date(lastNotificationCheck).getTime();
       const hoursSinceLastCheck = timeSinceLastCheck / (1000 * 60 * 60);
       
-      // Don't send notifications more than once every 12 hours
-      if (hoursSinceLastCheck < 12) return false;
+      // Don't send notifications more than once every N hours
+      if (hoursSinceLastCheck < NOTIFICATION_CONSTANTS.MIN_HOURS_BETWEEN_NOTIFICATIONS) return false;
     }
 
     return true;

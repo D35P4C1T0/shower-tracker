@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
@@ -18,6 +18,7 @@ import {
   getLastDayOfMonth
 } from '../lib/calendar-utils';
 import { cn } from '../lib/utils';
+import { CALENDAR_CONSTANTS } from '../lib/constants';
 
 interface CalendarProps {
   onDayClick?: (date: Date, showers: ShowerEntry[]) => void;
@@ -30,26 +31,69 @@ export function Calendar({ onDayClick }: CalendarProps) {
   
   const { getShowersByDateRange } = useShowers();
   const { settings } = useSettings();
+  
+  // Refs for request cancellation and debouncing
+  const abortControllerRef = useRef<AbortController | null>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load showers for the current month
-  useEffect(() => {
-    const loadMonthShowers = async () => {
-      setIsLoading(true);
-      try {
-        const startDate = getFirstDayOfMonth(currentDate);
-        const endDate = getLastDayOfMonth(currentDate);
-        const showers = await getShowersByDateRange(startDate, endDate);
+  // Load showers for the current month with cancellation support
+  const loadMonthShowers = useCallback(async (date: Date) => {
+    // Cancel previous request if it's still pending
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+
+    // Create new abort controller for this request
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+
+    setIsLoading(true);
+    try {
+      const startDate = getFirstDayOfMonth(date);
+      const endDate = getLastDayOfMonth(date);
+      const showers = await getShowersByDateRange(startDate, endDate);
+      
+      // Only update state if request wasn't cancelled
+      if (!abortController.signal.aborted) {
         setMonthShowers(showers);
-      } catch (error) {
+      }
+    } catch (error) {
+      // Don't log aborted requests as errors
+      if (error instanceof Error && error.name !== 'AbortError') {
         console.error('Failed to load month showers:', error);
+      }
+      if (!abortController.signal.aborted) {
         setMonthShowers([]);
-      } finally {
+      }
+    } finally {
+      if (!abortController.signal.aborted) {
         setIsLoading(false);
       }
-    };
+    }
+  }, [getShowersByDateRange]);
 
-    loadMonthShowers();
-  }, [currentDate, getShowersByDateRange]);
+  // Debounced effect for loading month showers
+  useEffect(() => {
+    // Clear previous debounce timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Debounce rapid date changes (e.g., rapid navigation)
+    debounceTimerRef.current = setTimeout(() => {
+      loadMonthShowers(currentDate);
+    }, CALENDAR_CONSTANTS.DEBOUNCE_MS);
+
+    // Cleanup function
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
+  }, [currentDate, loadMonthShowers]);
 
   // Generate calendar grid
   const calendarGrid = useMemo(() => {
@@ -172,7 +216,7 @@ export function Calendar({ onDayClick }: CalendarProps) {
             <div className="grid grid-cols-7 gap-1">
               {calendarGrid.map((date, index) => (
                 <div
-                  key={index}
+                  key={date ? date.toISOString() : `empty-${index}`}
                   className={cn(
                     "relative aspect-square p-1",
                     date && "cursor-pointer"

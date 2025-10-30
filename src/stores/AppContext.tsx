@@ -10,7 +10,7 @@ export type AppAction =
   | { type: 'UPDATE_SHOWER'; payload: { id: string; updates: Partial<ShowerEntry> } }
   | { type: 'DELETE_SHOWER'; payload: string }
   | { type: 'SET_SETTINGS'; payload: UserSettings }
-  | { type: 'UPDATE_SETTING'; payload: { key: keyof UserSettings; value: any } }
+  | { type: 'UPDATE_SETTING'; payload: { key: keyof UserSettings; value: UserSettings[keyof UserSettings] } }
   | { type: 'SET_LAST_NOTIFICATION_CHECK'; payload: Date | null }
   | { type: 'SET_ERROR'; payload: string | null };
 
@@ -48,11 +48,19 @@ function appReducer(state: ExtendedAppState, action: AppAction): ExtendedAppStat
       return { ...state, showers: action.payload };
     
     case 'ADD_SHOWER':
+      // Optimize: Since showers are already sorted (newest first) and we're adding at the beginning,
+      // only sort if the new shower is not the most recent
+      const newShower = action.payload;
+      const shouldSort = state.showers.length > 0 && 
+        new Date(newShower.timestamp).getTime() < new Date(state.showers[0].timestamp).getTime();
+      
       return { 
         ...state, 
-        showers: [action.payload, ...state.showers].sort((a, b) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        )
+        showers: shouldSort
+          ? [newShower, ...state.showers].sort((a, b) => 
+              new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+            )
+          : [newShower, ...state.showers]
       };
     
     case 'UPDATE_SHOWER':
