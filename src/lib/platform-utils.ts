@@ -10,18 +10,28 @@ export interface PlatformInfo {
   canInstall: boolean;
 }
 
+interface NavigatorWithStandalone extends Navigator {
+  standalone?: boolean;
+}
+
+interface WindowWithMSStream extends Window {
+  MSStream?: unknown;
+}
+
 /**
  * Detects the current platform and installation capabilities
  */
 export function detectPlatform(): PlatformInfo {
   const userAgent = navigator.userAgent.toLowerCase();
+  const iosWindow = window as WindowWithMSStream;
+  const standaloneNavigator = window.navigator as NavigatorWithStandalone;
   const isAndroid = /android/.test(userAgent);
-  const isIOS = /iphone|ipad|ipod/.test(userAgent) && !(window as any).MSStream;
+  const isIOS = /iphone|ipad|ipod/.test(userAgent) && !iosWindow.MSStream;
   const isMobile = isAndroid || isIOS || /mobile/.test(userAgent);
   
   // Check if app is already running in standalone mode
   const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
-    (window.navigator && (window.navigator as any).standalone === true) ||
+    (window.navigator && standaloneNavigator.standalone === true) ||
     document.referrer.includes('android-app://');
 
   // Check if installation is possible

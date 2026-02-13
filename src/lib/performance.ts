@@ -26,6 +26,19 @@ function getRating(name: string, value: number): 'good' | 'needs-improvement' | 
   return 'poor';
 }
 
+interface PerformanceEntryWithTiming extends PerformanceEntry {
+  startTime: number;
+}
+
+interface FirstInputPerformanceEntry extends PerformanceEntryWithTiming {
+  processingStart: number;
+}
+
+interface LayoutShiftPerformanceEntry extends PerformanceEntry {
+  hadRecentInput: boolean;
+  value: number;
+}
+
 // Simple performance observer for Core Web Vitals
 export function observeWebVitals(callback: (metric: WebVitalsMetric) => void) {
   // Only run in production and if APIs are available
@@ -38,7 +51,8 @@ export function observeWebVitals(callback: (metric: WebVitalsMetric) => void) {
     try {
       const lcpObserver = new PerformanceObserver((list) => {
         const entries = list.getEntries();
-        const lastEntry = entries[entries.length - 1] as PerformanceEntry & { startTime: number };
+        const lastEntry = entries[entries.length - 1] as PerformanceEntryWithTiming | undefined;
+        if (!lastEntry) return;
         
         callback({
           name: 'LCP',
@@ -49,26 +63,27 @@ export function observeWebVitals(callback: (metric: WebVitalsMetric) => void) {
         });
       });
       lcpObserver.observe({ type: 'largest-contentful-paint', buffered: true });
-    } catch (e) {
+    } catch {
       // Silently fail if not supported
     }
 
     // Observe First Input Delay (FID)
     try {
       const fidObserver = new PerformanceObserver((list) => {
-        const entries = list.getEntries();
-        entries.forEach((entry: any) => {
+        const entries = list.getEntries() as FirstInputPerformanceEntry[];
+        entries.forEach((entry) => {
+          const fid = entry.processingStart - entry.startTime;
           callback({
             name: 'FID',
-            value: entry.processingStart - entry.startTime,
-            rating: getRating('FID', entry.processingStart - entry.startTime),
-            delta: entry.processingStart - entry.startTime,
+            value: fid,
+            rating: getRating('FID', fid),
+            delta: fid,
             id: 'fid'
           });
         });
       });
       fidObserver.observe({ type: 'first-input', buffered: true });
-    } catch (e) {
+    } catch {
       // Silently fail if not supported
     }
 
@@ -76,8 +91,8 @@ export function observeWebVitals(callback: (metric: WebVitalsMetric) => void) {
     try {
       let clsValue = 0;
       const clsObserver = new PerformanceObserver((list) => {
-        const entries = list.getEntries();
-        entries.forEach((entry: any) => {
+        const entries = list.getEntries() as LayoutShiftPerformanceEntry[];
+        entries.forEach((entry) => {
           if (!entry.hadRecentInput) {
             clsValue += entry.value;
           }
@@ -92,7 +107,7 @@ export function observeWebVitals(callback: (metric: WebVitalsMetric) => void) {
         });
       });
       clsObserver.observe({ type: 'layout-shift', buffered: true });
-    } catch (e) {
+    } catch {
       // Silently fail if not supported
     }
 
@@ -113,7 +128,7 @@ export function observeWebVitals(callback: (metric: WebVitalsMetric) => void) {
         });
       });
       fcpObserver.observe({ type: 'paint', buffered: true });
-    } catch (e) {
+    } catch {
       // Silently fail if not supported
     }
   }
@@ -134,7 +149,7 @@ export function observeWebVitals(callback: (metric: WebVitalsMetric) => void) {
           id: 'ttfb'
         });
       }
-    } catch (e) {
+    } catch {
       // Silently fail if not supported
     }
   }

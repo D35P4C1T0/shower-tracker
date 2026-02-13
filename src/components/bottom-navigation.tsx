@@ -26,7 +26,7 @@ export function BottomNavigation({ currentPage, onNavigate }: BottomNavigationPr
   ]
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border pb-[env(safe-area-inset-bottom)]">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border pb-[env(safe-area-inset-bottom)] app-fade-in">
       <div className="flex items-center justify-around h-16 max-w-md mx-auto px-4">
         {navItems.map((item) => {
           const Icon = item.icon
@@ -37,15 +37,20 @@ export function BottomNavigation({ currentPage, onNavigate }: BottomNavigationPr
               key={item.id}
               onClick={() => onNavigate(item.id)}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-colors",
+                "flex flex-col items-center justify-center gap-1 px-3 py-2 rounded-lg transition-all duration-200 ease-out motion-reduce:transition-none",
                 "min-w-0 flex-1 text-xs font-medium",
                 isActive
-                  ? "text-primary bg-primary/10"
+                  ? "text-primary bg-primary/10 shadow-sm"
                   : "text-muted-foreground hover:text-foreground hover:bg-accent"
               )}
               aria-label={item.label}
             >
-              <Icon className={cn("h-5 w-5", isActive && "text-primary")} />
+              <Icon
+                className={cn(
+                  "h-5 w-5 transition-transform duration-200 ease-out motion-reduce:transition-none",
+                  isActive ? "text-primary scale-105" : "scale-100"
+                )}
+              />
               <span className="truncate">{item.label}</span>
             </button>
           )

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect, useRef, type ReactNode } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CheckCircle, AlertCircle, AlertTriangle, Info, X } from 'lucide-react';
@@ -18,6 +18,10 @@ export interface Toast {
   };
 }
 
+interface ToastWithAnimation extends Toast {
+  isExiting?: boolean;
+}
+
 interface ToastContextType {
   toasts: Toast[];
   addToast: (toast: Omit<Toast, 'id'>) => void;
@@ -29,15 +33,51 @@ interface ToastContextType {
 }
 
 const ToastContext = createContext<ToastContextType | undefined>(undefined);
+const TOAST_EXIT_ANIMATION_MS = 180;
 
 export function ToastProvider({ children }: { children: ReactNode }) {
-  const [toasts, setToasts] = useState<Toast[]>([]);
+  const [toasts, setToasts] = useState<ToastWithAnimation[]>([]);
+  const removalTimersRef = useRef<Map<string, number>>(new Map());
+
+  useEffect(() => {
+    const timers = removalTimersRef.current;
+    return () => {
+      timers.forEach((timerId) => {
+        window.clearTimeout(timerId);
+      });
+      timers.clear();
+    };
+  }, []);
+
+  const removeToast = useCallback((id: string) => {
+    setToasts((prev) => {
+      const toast = prev.find((item) => item.id === id);
+      if (!toast || toast.isExiting) {
+        return prev;
+      }
+
+      return prev.map((item) => (
+        item.id === id ? { ...item, isExiting: true } : item
+      ));
+    });
+
+    if (removalTimersRef.current.has(id)) {
+      return;
+    }
+
+    const timerId = window.setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+      removalTimersRef.current.delete(id);
+    }, TOAST_EXIT_ANIMATION_MS);
+
+    removalTimersRef.current.set(id, timerId);
+  }, []);
 
   const addToast = useCallback((toast: Omit<Toast, 'id'>) => {
-    const id = Math.random().toString(36).substr(2, 9);
+    const id = globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2, 11);
     const newToast = { ...toast, id };
     
-    setToasts(prev => [...prev, newToast]);
+    setToasts((prev) => [...prev, newToast]);
 
     // Auto remove after duration
     const duration = toast.duration ?? 5000;
@@ -46,11 +86,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
         removeToast(id);
       }, duration);
     }
-  }, []);
-
-  const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  }, []);
+  }, [removeToast]);
 
   const success = useCallback((title: string, description?: string) => {
     addToast({ type: 'success', title, description });
@@ -97,16 +133,18 @@ function ToastContainer() {
 
   if (toasts.length === 0) return null;
 
+  const orderedToasts = [...toasts].reverse();
+
   return (
     <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm w-full">
-      {toasts.map(toast => (
+      {orderedToasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} />
       ))}
     </div>
   );
 }
 
-function ToastItem({ toast }: { toast: Toast }) {
+function ToastItem({ toast }: { toast: ToastWithAnimation }) {
   const { removeToast } = useToast();
 
   const icons = {
@@ -133,7 +171,13 @@ function ToastItem({ toast }: { toast: Toast }) {
   };
 
   return (
-    <Card className={cn('animate-in slide-in-from-right-full', variants[toast.type])} data-testid="toast">
+    <Card
+      className={cn(
+        toast.isExiting ? 'app-toast-out-right' : 'app-toast-in-right',
+        variants[toast.type]
+      )}
+      data-testid="toast"
+    >
       <CardContent className="p-4">
         <div className="flex items-start gap-3">
           <Icon className={cn('h-5 w-5 mt-0.5 flex-shrink-0', iconColors[toast.type])} />

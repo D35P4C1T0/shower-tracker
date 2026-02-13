@@ -86,7 +86,7 @@ test.describe('Shower Tracking E2E Tests', () => {
           await expect(page.locator('html')).toHaveClass(/dark/, { timeout: 5000 })
         }
       }
-    } catch (e) {
+    } catch {
       console.log('Theme toggle not found or not working, skipping theme test')
     }
     
@@ -141,7 +141,7 @@ test.describe('Shower Tracking E2E Tests', () => {
     // Try to wait for offline indicator, but don't fail if it doesn't appear
     try {
       await expect(offlineIndicator).toBeVisible({ timeout: 3000 })
-    } catch (e) {
+    } catch {
       console.log('Offline indicator not shown, continuing test...')
     }
     
@@ -155,25 +155,14 @@ test.describe('Shower Tracking E2E Tests', () => {
     )).not.toBeVisible({ timeout: 10000 })
   })
 
-  test('should support PWA installation flow @nonblocking', async ({ page, context }) => {
+  test('should support PWA installation flow @nonblocking', async ({ page }) => {
     // Mock beforeinstallprompt event
     await page.addInitScript(() => {
-      let deferredPrompt: any
-      
       window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault()
-        deferredPrompt = e
-        
-        // Trigger custom install prompt
         const event = new CustomEvent('showinstallprompt')
         window.dispatchEvent(event)
       })
-      
-      // Mock the prompt method
-      if (deferredPrompt) {
-        deferredPrompt.prompt = () => Promise.resolve()
-        deferredPrompt.userChoice = Promise.resolve({ outcome: 'accepted' })
-      }
     })
     
     // Look for install prompt (may vary by platform)
@@ -304,7 +293,7 @@ test.describe('Shower Tracking E2E Tests', () => {
     
     try {
       await expect(errorToast).toBeVisible({ timeout: 3000 })
-    } catch (e) {
+    } catch {
       console.log('No error toast shown, app handled errors gracefully')
     }
     

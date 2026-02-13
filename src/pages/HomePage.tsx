@@ -38,7 +38,7 @@ export function HomePage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 app-fade-in">
         <CardSkeleton />
         <CardSkeleton />
       </div>
@@ -46,10 +46,10 @@ export function HomePage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 app-fade-in">
       <NotificationBanner />
       
-      <Card>
+      <Card className="app-fade-up app-fade-up-delay-1">
         <CardHeader>
           <CardTitle>Welcome Back!</CardTitle>
           <CardDescription>
@@ -86,7 +86,7 @@ export function HomePage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="app-fade-up app-fade-up-delay-2">
         <CardHeader>
           <CardTitle>Time Since Last Shower</CardTitle>
         </CardHeader>

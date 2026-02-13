@@ -25,7 +25,7 @@ export function NotificationBanner() {
   // Show fallback message if notifications can't be sent but should be
   if (fallbackMessage && permissionStatus !== 'granted') {
     return (
-      <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-950/20 dark:border-amber-800">
+      <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-950/20 dark:border-amber-800 app-fade-up">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
@@ -57,7 +57,7 @@ export function NotificationBanner() {
   // Show permission request banner if notifications are enabled but permission not granted
   if (permissionStatus !== 'granted' && isEnabled) {
     return (
-      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950/20 dark:border-blue-800">
+      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950/20 dark:border-blue-800 app-fade-up">
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
             <Bell className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
