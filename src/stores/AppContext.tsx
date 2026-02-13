@@ -47,7 +47,7 @@ function appReducer(state: ExtendedAppState, action: AppAction): ExtendedAppStat
     case 'SET_SHOWERS':
       return { ...state, showers: action.payload };
     
-    case 'ADD_SHOWER':
+    case 'ADD_SHOWER': {
       // Optimize: Since showers are already sorted (newest first) and we're adding at the beginning,
       // only sort if the new shower is not the most recent
       const newShower = action.payload;
@@ -62,6 +62,7 @@ function appReducer(state: ExtendedAppState, action: AppAction): ExtendedAppStat
             )
           : [newShower, ...state.showers]
       };
+    }
     
     case 'UPDATE_SHOWER':
       return {

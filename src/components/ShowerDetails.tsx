@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Trash2, Droplet } from 'lucide-react';
+import { Trash2, Droplet, Plus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
@@ -13,13 +13,14 @@ interface ShowerDetailsProps {
   date: Date;
   showers: ShowerEntry[];
   onClose?: () => void;
-  onShowerDeleted?: () => void;
+  onShowersChanged?: () => void;
 }
 
-export function ShowerDetails({ date, showers, onClose, onShowerDeleted }: ShowerDetailsProps) {
+export function ShowerDetails({ date, showers, onClose, onShowersChanged }: ShowerDetailsProps) {
   const [showerToDelete, setShowerToDelete] = useState<ShowerEntry | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { deleteShower } = useShowers();
+  const [isAdding, setIsAdding] = useState(false);
+  const { addShower, deleteShower } = useShowers();
   const { success: showSuccess, error: showError } = useToast();
 
   const formatTime = (timestamp: Date) => {
@@ -42,11 +43,26 @@ export function ShowerDetails({ date, showers, onClose, onShowerDeleted }: Showe
       await deleteShower(showerToDelete.id);
       showSuccess('Shower deleted successfully');
       setShowerToDelete(null);
-      onShowerDeleted?.();
+      onShowersChanged?.();
     } catch (error) {
       showError('Failed to delete shower', error instanceof Error ? error.message : 'Unknown error');
     } finally {
       setIsDeleting(false);
+    }
+  };
+
+  const handleAddShower = async () => {
+    setIsAdding(true);
+    try {
+      const noonDate = new Date(date);
+      noonDate.setHours(12, 0, 0, 0);
+      await addShower(noonDate);
+      showSuccess('Shower added', `Added shower for ${formatDate(date)} at 12:00 PM.`);
+      onShowersChanged?.();
+    } catch (error) {
+      showError('Failed to add shower', error instanceof Error ? error.message : 'Unknown error');
+    } finally {
+      setIsAdding(false);
     }
   };
 
@@ -83,8 +99,18 @@ export function ShowerDetails({ date, showers, onClose, onShowerDeleted }: Showe
       </CardHeader>
       <CardContent>
         {showers.length === 0 ? (
-          <div className="text-center py-4 text-muted-foreground">
-            No showers were recorded on this day.
+          <div className="text-center py-4 text-muted-foreground space-y-3">
+            <p>No showers were recorded on this day.</p>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAddShower}
+              disabled={isAdding}
+              data-testid="add-shower-for-day"
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              {isAdding ? 'Adding...' : 'Add Shower'}
+            </Button>
           </div>
         ) : (
           <div className="relative">
@@ -130,6 +156,19 @@ export function ShowerDetails({ date, showers, onClose, onShowerDeleted }: Showe
                   </div>
                 </div>
               ))}
+            </div>
+
+            <div className="mt-6 flex justify-center">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleAddShower}
+                disabled={isAdding}
+                data-testid="add-shower-for-day"
+              >
+                <Plus className="h-4 w-4 mr-1" />
+                {isAdding ? 'Adding...' : 'Add Another Shower'}
+              </Button>
             </div>
           </div>
         )}

@@ -11,9 +11,19 @@ export function CalendarPage() {
   const { error: showError } = useToast();
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedShowers, setSelectedShowers] = useState<ShowerEntry[]>([]);
-  const [calendarKey, setCalendarKey] = useState(0);
+  const [calendarRefreshTrigger, setCalendarRefreshTrigger] = useState(0);
 
   const handleDayClick = (date: Date, showers: ShowerEntry[]) => {
+    setSelectedDate(date);
+    setSelectedShowers(showers);
+  };
+
+  const handleTodaySelected = (date: Date, showers: ShowerEntry[]) => {
+    // Only sync details when the details panel is already open.
+    if (!selectedDate) {
+      return;
+    }
+
     setSelectedDate(date);
     setSelectedShowers(showers);
   };
@@ -23,9 +33,9 @@ export function CalendarPage() {
     setSelectedShowers([]);
   };
 
-  const handleShowerDeleted = async () => {
-    // Refresh the calendar by changing its key (forces remount)
-    setCalendarKey(prev => prev + 1);
+  const handleShowersChanged = async () => {
+    // Refresh calendar data in-place without remounting (preserves visible month).
+    setCalendarRefreshTrigger(prev => prev + 1);
     
     // Update the selected showers for the current date
     if (selectedDate) {
@@ -37,11 +47,6 @@ export function CalendarPage() {
       try {
         const updatedShowers = await getShowersByDateRange(startOfDay, endOfDay);
         setSelectedShowers(updatedShowers);
-        
-        // If no showers left for this day, close the details
-        if (updatedShowers.length === 0) {
-          handleCloseDetails();
-        }
       } catch (error) {
         console.error('Failed to refresh showers:', error);
       }
@@ -55,22 +60,26 @@ export function CalendarPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
+      <div className="space-y-6 app-fade-in">
         <CalendarSkeleton />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <Calendar key={calendarKey} onDayClick={handleDayClick} />
+    <div className="space-y-6 app-fade-in">
+      <Calendar
+        onDayClick={handleDayClick}
+        onTodaySelected={handleTodaySelected}
+        refreshTrigger={calendarRefreshTrigger}
+      />
       
       {selectedDate && (
         <ShowerDetails
           date={selectedDate}
           showers={selectedShowers}
           onClose={handleCloseDetails}
-          onShowerDeleted={handleShowerDeleted}
+          onShowersChanged={handleShowersChanged}
         />
       )}
     </div>

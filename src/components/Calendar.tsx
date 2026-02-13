@@ -2,6 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { CalendarSkeleton } from './loading-skeleton';
 import { useShowers } from '../hooks/useShowers';
 import { useSettings } from '../hooks/useSettings';
 import type { ShowerEntry } from '../types';
@@ -15,142 +16,186 @@ import {
   isToday,
   formatDate,
   getFirstDayOfMonth,
-  getLastDayOfMonth
+  getLastDayOfMonth,
 } from '../lib/calendar-utils';
 import { cn } from '../lib/utils';
-import { CALENDAR_CONSTANTS } from '../lib/constants';
 
 interface CalendarProps {
   onDayClick?: (date: Date, showers: ShowerEntry[]) => void;
+  onTodaySelected?: (date: Date, showers: ShowerEntry[]) => void;
+  refreshTrigger?: number;
 }
 
-export function Calendar({ onDayClick }: CalendarProps) {
+interface LoadMonthOptions {
+  commitDate: boolean;
+  clearDataOnError: boolean;
+}
+
+export function Calendar({ onDayClick, onTodaySelected, refreshTrigger = 0 }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [monthShowers, setMonthShowers] = useState<ShowerEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasLoadedInitialMonth, setHasLoadedInitialMonth] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
   const { getShowersByDateRange } = useShowers();
   const { settings } = useSettings();
-  
-  // Refs for request cancellation and debouncing
-  const abortControllerRef = useRef<AbortController | null>(null);
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Load showers for the current month with cancellation support
-  const loadMonthShowers = useCallback(async (date: Date) => {
-    // Cancel previous request if it's still pending
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-    }
+  const requestIdRef = useRef(0);
+  const initialDateRef = useRef(currentDate);
 
-    // Create new abort controller for this request
-    const abortController = new AbortController();
-    abortControllerRef.current = abortController;
+  const loadMonthShowers = useCallback(async (date: Date, options: LoadMonthOptions): Promise<ShowerEntry[] | null> => {
+    const requestId = requestIdRef.current + 1;
+    requestIdRef.current = requestId;
 
     setIsLoading(true);
+
     try {
       const startDate = getFirstDayOfMonth(date);
       const endDate = getLastDayOfMonth(date);
       const showers = await getShowersByDateRange(startDate, endDate);
-      
-      // Only update state if request wasn't cancelled
-      if (!abortController.signal.aborted) {
+
+      if (requestId === requestIdRef.current) {
         setMonthShowers(showers);
+        if (options.commitDate) {
+          setCurrentDate(date);
+        }
       }
+      return showers;
     } catch (error) {
-      // Don't log aborted requests as errors
-      if (error instanceof Error && error.name !== 'AbortError') {
+      if (requestId === requestIdRef.current) {
         console.error('Failed to load month showers:', error);
+        if (options.clearDataOnError) {
+          setMonthShowers([]);
+        }
       }
-      if (!abortController.signal.aborted) {
-        setMonthShowers([]);
-      }
+      return null;
     } finally {
-      if (!abortController.signal.aborted) {
+      if (requestId === requestIdRef.current) {
         setIsLoading(false);
+        setHasLoadedInitialMonth(true);
       }
     }
   }, [getShowersByDateRange]);
 
-  // Debounced effect for loading month showers
   useEffect(() => {
-    // Clear previous debounce timer
-    if (debounceTimerRef.current) {
-      clearTimeout(debounceTimerRef.current);
+    void loadMonthShowers(initialDateRef.current, {
+      commitDate: false,
+      clearDataOnError: true,
+    });
+  }, [loadMonthShowers]);
+
+  useEffect(() => {
+    return () => {
+      requestIdRef.current += 1;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!hasLoadedInitialMonth) {
+      return;
     }
 
-    // Debounce rapid date changes (e.g., rapid navigation)
-    debounceTimerRef.current = setTimeout(() => {
-      loadMonthShowers(currentDate);
-    }, CALENDAR_CONSTANTS.DEBOUNCE_MS);
+    void loadMonthShowers(currentDate, {
+      commitDate: false,
+      clearDataOnError: false,
+    });
+  }, [refreshTrigger, hasLoadedInitialMonth, currentDate, loadMonthShowers]);
 
-    // Cleanup function
-    return () => {
-      if (debounceTimerRef.current) {
-        clearTimeout(debounceTimerRef.current);
-      }
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
-  }, [currentDate, loadMonthShowers]);
-
-  // Generate calendar grid
   const calendarGrid = useMemo(() => {
     return generateCalendarGrid(currentDate, settings.firstDayOfWeek);
   }, [currentDate, settings.firstDayOfWeek]);
 
-  // Get day names based on user preference
   const dayNames = useMemo(() => {
     return getDayNames(settings.firstDayOfWeek);
   }, [settings.firstDayOfWeek]);
 
-  // Group showers by date for quick lookup
   const showersByDate = useMemo(() => {
     const grouped = new Map<string, ShowerEntry[]>();
-    
-    monthShowers.forEach(shower => {
+
+    monthShowers.forEach((shower) => {
       const dateKey = new Date(shower.timestamp).toDateString();
       if (!grouped.has(dateKey)) {
         grouped.set(dateKey, []);
       }
       grouped.get(dateKey)!.push(shower);
     });
-    
+
     return grouped;
   }, [monthShowers]);
 
-  // Navigation handlers
+  const isSameMonth = (first: Date, second: Date): boolean => (
+    first.getMonth() === second.getMonth() &&
+    first.getFullYear() === second.getFullYear()
+  );
+
+  const navigateToMonth = async (nextDate: Date) => {
+    if (isLoading || isSameMonth(currentDate, nextDate)) {
+      return;
+    }
+
+    setIsTransitioning(true);
+    await loadMonthShowers(nextDate, {
+      commitDate: true,
+      clearDataOnError: false,
+    });
+    setIsTransitioning(false);
+  };
+
   const goToPreviousMonth = () => {
-    setCurrentDate(getPreviousMonth(currentDate));
+    void navigateToMonth(getPreviousMonth(currentDate));
   };
 
   const goToNextMonth = () => {
-    setCurrentDate(getNextMonth(currentDate));
+    void navigateToMonth(getNextMonth(currentDate));
   };
 
-  const goToToday = () => {
-    setCurrentDate(new Date());
+  const goToToday = async () => {
+    const today = new Date();
+
+    if (isSameMonth(currentDate, today)) {
+      onTodaySelected?.(today, showersByDate.get(today.toDateString()) || []);
+      return;
+    }
+
+    if (isLoading) {
+      return;
+    }
+
+    setIsTransitioning(true);
+    const loadedShowers = await loadMonthShowers(today, {
+      commitDate: true,
+      clearDataOnError: false,
+    });
+    setIsTransitioning(false);
+
+    onTodaySelected?.(today, loadedShowers ? getShowersForDate(loadedShowers, today) : []);
   };
 
-  // Handle day click
   const handleDayClick = (date: Date) => {
     const dayShowers = showersByDate.get(date.toDateString()) || [];
     onDayClick?.(date, dayShowers);
   };
 
-  // Check if a date has showers
   const hasShowers = (date: Date): boolean => {
     return showersByDate.has(date.toDateString());
   };
 
-  // Get shower count for a date
   const getShowerCount = (date: Date): number => {
     return showersByDate.get(date.toDateString())?.length || 0;
   };
 
+  const getShowersForDate = (showers: ShowerEntry[], date: Date): ShowerEntry[] => {
+    const dateKey = date.toDateString();
+    return showers.filter((shower) => new Date(shower.timestamp).toDateString() === dateKey);
+  };
+
+  if (!hasLoadedInitialMonth) {
+    return <CalendarSkeleton />;
+  }
+
   return (
-    <Card data-testid="calendar">
+    <Card data-testid="calendar" aria-busy={isLoading}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex flex-col">
@@ -167,6 +212,7 @@ export function Calendar({ onDayClick }: CalendarProps) {
               size="sm"
               onClick={goToToday}
               className="text-xs"
+              disabled={isLoading}
             >
               Today
             </Button>
@@ -194,91 +240,88 @@ export function Calendar({ onDayClick }: CalendarProps) {
         </div>
       </CardHeader>
       <CardContent>
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="text-muted-foreground">Loading calendar...</div>
+        <div
+          className={cn(
+            'space-y-4 motion-safe:transition-opacity motion-safe:duration-200 motion-safe:ease-in-out motion-reduce:transition-none',
+            isTransitioning ? 'opacity-60' : 'opacity-100'
+          )}
+        >
+          <div className="grid grid-cols-7 gap-1">
+            {dayNames.map((dayName) => (
+              <div
+                key={dayName}
+                className="p-2 text-center text-sm font-medium text-muted-foreground"
+              >
+                {dayName}
+              </div>
+            ))}
           </div>
-        ) : (
-          <div className="space-y-4">
-            {/* Day headers */}
-            <div className="grid grid-cols-7 gap-1">
-              {dayNames.map((dayName) => (
-                <div
-                  key={dayName}
-                  className="p-2 text-center text-sm font-medium text-muted-foreground"
-                >
-                  {dayName}
-                </div>
-              ))}
-            </div>
-            
-            {/* Calendar grid */}
-            <div className="grid grid-cols-7 gap-1">
-              {calendarGrid.map((date, index) => (
-                <div
-                  key={date ? date.toISOString() : `empty-${index}`}
-                  className={cn(
-                    "relative aspect-square p-1",
-                    date && "cursor-pointer"
-                  )}
-                >
-                  {date && (
-                    <button
-                      onClick={() => handleDayClick(date)}
-                      data-date={date.toISOString().split('T')[0]}
-                      className={cn(
-                        "w-full h-full rounded-md border-2 border-transparent",
-                        "flex flex-col items-center justify-center",
-                        "text-sm transition-colors",
-                        "hover:bg-accent hover:text-accent-foreground",
-                        "focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
-                        isToday(date) && "border-primary bg-primary/10",
-                        hasShowers(date) && "bg-blue-100 dark:bg-blue-900/30 has-shower",
-                        hasShowers(date) && isToday(date) && "bg-primary/20"
-                      )}
-                      title={
-                        hasShowers(date)
-                          ? `${formatDate(date)} - ${getShowerCount(date)} shower${getShowerCount(date) > 1 ? 's' : ''}`
-                          : formatDate(date)
-                      }
-                    >
-                      <span className="font-medium">{date.getDate()}</span>
-                      {hasShowers(date) && (
-                        <div className="flex gap-0.5 mt-0.5">
-                          {Array.from({ length: Math.min(getShowerCount(date), 3) }).map((_, i) => (
-                            <div
-                              key={i}
-                              className="w-1.5 h-1.5 rounded-full bg-blue-500"
-                            />
-                          ))}
-                          {getShowerCount(date) > 3 && (
-                            <span className="text-xs text-blue-600 dark:text-blue-400 font-bold">
-                              +
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-            
-            {/* Legend */}
-            <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground pt-4 border-t">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded border-2 border-primary bg-primary/10" />
-                <span>Today</span>
+
+          <div className="grid grid-cols-7 gap-1">
+            {calendarGrid.map((date, index) => (
+              <div
+                key={date ? date.toISOString() : `empty-${index}`}
+                className={cn(
+                  'relative aspect-square p-1',
+                  date && 'cursor-pointer'
+                )}
+              >
+                {date && (
+                  <button
+                    onClick={() => handleDayClick(date)}
+                    data-date={date.toISOString().split('T')[0]}
+                    disabled={isLoading}
+                    className={cn(
+                      'w-full h-full rounded-md border-2 border-transparent',
+                      'flex flex-col items-center justify-center',
+                      'text-sm transition-colors',
+                      'hover:bg-accent hover:text-accent-foreground',
+                      'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+                      isToday(date) && 'border-primary bg-primary/10',
+                      hasShowers(date) && 'bg-blue-100 dark:bg-blue-900/30 has-shower',
+                      hasShowers(date) && isToday(date) && 'bg-primary/20'
+                    )}
+                    title={
+                      hasShowers(date)
+                        ? `${formatDate(date)} - ${getShowerCount(date)} shower${getShowerCount(date) > 1 ? 's' : ''}`
+                        : formatDate(date)
+                    }
+                  >
+                    <span className="font-medium">{date.getDate()}</span>
+                    {hasShowers(date) && (
+                      <div className="flex gap-0.5 mt-0.5">
+                        {Array.from({ length: Math.min(getShowerCount(date), 3) }).map((_, i) => (
+                          <div
+                            key={i}
+                            className="w-1.5 h-1.5 rounded-full bg-blue-500"
+                          />
+                        ))}
+                        {getShowerCount(date) > 3 && (
+                          <span className="text-xs text-blue-600 dark:text-blue-400 font-bold">
+                            +
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </button>
+                )}
               </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                </div>
-                <span>Has showers</span>
+            ))}
+          </div>
+
+          <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground pt-4 border-t">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded border-2 border-primary bg-primary/10" />
+              <span>Today</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
               </div>
+              <span>Has showers</span>
             </div>
           </div>
-        )}
+        </div>
       </CardContent>
     </Card>
   );

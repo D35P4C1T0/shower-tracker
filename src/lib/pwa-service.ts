@@ -18,10 +18,23 @@ export interface NetworkStatus {
   isOfflineReady: boolean;
 }
 
+interface NavigatorWithStandalone extends Navigator {
+  standalone?: boolean;
+}
+
+interface BeforeInstallPromptChoice {
+  outcome: 'accepted' | 'dismissed';
+}
+
+interface BeforeInstallPromptEvent extends Event {
+  prompt: () => Promise<void>;
+  userChoice: Promise<BeforeInstallPromptChoice>;
+}
+
 class PWAService {
   private updateCallback?: (info: PWAUpdateInfo) => void;
   private networkCallback?: (status: NetworkStatus) => void;
-  private installPrompt: any = null;
+  private installPrompt: BeforeInstallPromptEvent | null = null;
 
   constructor() {
     this.setupNetworkListeners();
@@ -34,9 +47,7 @@ class PWAService {
   async registerServiceWorker(): Promise<void> {
     if ('serviceWorker' in navigator) {
       try {
-        // Use Vite base URL to correctly resolve path under GitHub Pages subpath
-        const baseUrl = (import.meta as any).env?.BASE_URL || '/';
-        const swUrl = `${baseUrl.replace(/\/$/, '')}/sw.js`;
+        const swUrl = this.withBasePath('sw.js');
         const registration = await navigator.serviceWorker.register(swUrl);
         
         // Handle service worker updates
@@ -85,9 +96,9 @@ class PWAService {
    * Set up install prompt listener
    */
   private setupInstallPromptListener(): void {
-    window.addEventListener('beforeinstallprompt', (e) => {
-      e.preventDefault();
-      this.installPrompt = e;
+    window.addEventListener('beforeinstallprompt', (event) => {
+      event.preventDefault();
+      this.installPrompt = event as BeforeInstallPromptEvent;
     });
   }
 
@@ -132,14 +143,16 @@ class PWAService {
    */
   getInstallInfo(): PWAInstallInfo {
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches;
-    const isInstalled = isStandalone || !!(window.navigator as any)?.standalone;
+    const standaloneNavigator = window.navigator as NavigatorWithStandalone;
+    const isInstalled = isStandalone || !!standaloneNavigator.standalone;
 
     return {
       isInstallable: !!this.installPrompt && !isInstalled,
       isInstalled,
       installApp: async () => {
         if (this.installPrompt) {
-          const result = await this.installPrompt.prompt();
+          await this.installPrompt.prompt();
+          const result = await this.installPrompt.userChoice;
           if (result.outcome === 'accepted') {
             this.installPrompt = null;
           }
@@ -191,8 +204,8 @@ class PWAService {
     if (Notification.permission === 'granted' && 'serviceWorker' in navigator) {
       const registration = await navigator.serviceWorker.ready;
       await registration.showNotification(title, {
-        icon: '/pwa-192x192.png',
-        badge: '/pwa-64x64.png',
+        icon: this.withBasePath('pwa-192x192.png'),
+        badge: this.withBasePath('pwa-64x64.png'),
         ...options
       });
     }
@@ -207,13 +220,11 @@ class PWAService {
         const cache = await caches.open('shower-tracker-data-v1');
         
         // Cache essential API endpoints or data
-        const baseUrl = (import.meta as any).env?.BASE_URL || '/';
-        const withBase = (p: string) => `${baseUrl.replace(/\/$/, '')}/${p.replace(/^\//, '')}`;
         const essentialUrls = [
-          withBase('/'),
-          withBase('manifest.webmanifest'),
-          withBase('pwa-192x192.png'),
-          withBase('pwa-512x512.png')
+          this.withBasePath('/'),
+          this.withBasePath('manifest.webmanifest'),
+          this.withBasePath('pwa-192x192.png'),
+          this.withBasePath('pwa-512x512.png')
         ];
 
         await cache.addAll(essentialUrls);
@@ -235,6 +246,11 @@ class PWAService {
       );
       console.log('All caches cleared');
     }
+  }
+
+  private withBasePath(path: string): string {
+    const baseUrl = import.meta.env.BASE_URL || '/';
+    return `${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
   }
 }
 

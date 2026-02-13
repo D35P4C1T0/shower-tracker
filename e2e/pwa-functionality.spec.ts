@@ -56,7 +56,7 @@ test.describe('PWA Functionality Tests', () => {
     // Try to wait for offline indicator, but don't fail if it doesn't appear
     try {
       await expect(offlineIndicator).toBeVisible({ timeout: 3000 })
-    } catch (e) {
+    } catch {
       console.log('Offline indicator not shown, continuing test...')
     }
     

@@ -24,6 +24,9 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 221.2 83.2% 53.3%;
     --radius: 0.5rem;
+    --motion-duration-fast: 180ms;
+    --motion-duration-base: 220ms;
+    --motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
   }
 
   .dark {
@@ -105,6 +108,128 @@
 }
 
 @layer utilities {
+  @keyframes app-fade-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes app-fade-up {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes app-toast-in-right {
+    from {
+      opacity: 0;
+      transform: translateX(18px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes app-toast-out-right {
+    from {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateX(18px);
+    }
+  }
+
+  @keyframes app-dialog-overlay-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes app-dialog-overlay-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
+  @keyframes app-dialog-content-in {
+    from {
+      opacity: 0;
+      transform: translate(-50%, calc(-50% + 8px)) scale(0.98);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+
+  @keyframes app-dialog-content-out {
+    from {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: translate(-50%, calc(-50% + 8px)) scale(0.98);
+    }
+  }
+
+  .app-fade-in {
+    animation: app-fade-in var(--motion-duration-fast) var(--motion-ease-standard) both;
+  }
+
+  .app-fade-up {
+    animation: app-fade-up var(--motion-duration-base) var(--motion-ease-standard) both;
+  }
+
+  .app-fade-up-delay-1 {
+    animation-delay: 40ms;
+  }
+
+  .app-fade-up-delay-2 {
+    animation-delay: 80ms;
+  }
+
+  .app-toast-in-right {
+    animation: app-toast-in-right var(--motion-duration-fast) var(--motion-ease-standard) both;
+  }
+
+  .app-toast-out-right {
+    animation: app-toast-out-right var(--motion-duration-fast) var(--motion-ease-standard) both;
+  }
+
+  .app-dialog-overlay[data-state="open"] {
+    animation: app-dialog-overlay-in var(--motion-duration-fast) var(--motion-ease-standard) both;
+  }
+
+  .app-dialog-overlay[data-state="closed"] {
+    animation: app-dialog-overlay-out var(--motion-duration-fast) var(--motion-ease-standard) both;
+  }
+
+  .app-dialog-content[data-state="open"] {
+    animation: app-dialog-content-in var(--motion-duration-base) var(--motion-ease-standard) both;
+  }
+
+  .app-dialog-content[data-state="closed"] {
+    animation: app-dialog-content-out var(--motion-duration-fast) var(--motion-ease-standard) both;
+  }
+
   /* Performance utilities */
   .will-change-transform {
     will-change: transform;

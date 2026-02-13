@@ -46,7 +46,7 @@ export function SettingsPage() {
       const firstDayOfWeek = value === '1' ? 1 : 0
       await updateFirstDayOfWeek(firstDayOfWeek)
       success('Settings saved', 'First day of week updated successfully.')
-    } catch (error) {
+    } catch {
       showError('Failed to save setting', 'Could not update first day of week. Please try again.')
     }
   }
@@ -66,7 +66,7 @@ export function SettingsPage() {
         enabled ? 'Notifications enabled' : 'Notifications disabled',
         enabled ? 'You will receive shower reminders.' : 'Shower reminders have been turned off.'
       )
-    } catch (error) {
+    } catch {
       showError('Failed to save setting', 'Could not update notification preferences. Please try again.')
     }
   }
@@ -99,12 +99,12 @@ export function SettingsPage() {
 
 
   if (isLoading) {
-    return <SettingsSkeleton />
+    return <div className="app-fade-in"><SettingsSkeleton /></div>
   }
 
   return (
-    <div className="space-y-6" data-testid="settings-page">
-      <Card>
+    <div className="space-y-6 app-fade-in" data-testid="settings-page">
+      <Card className="app-fade-up app-fade-up-delay-1">
         <CardHeader>
           <CardTitle>Settings</CardTitle>
           <CardDescription>
@@ -273,7 +273,7 @@ export function SettingsPage() {
       </Card>
 
       {/* App Information - Read Only */}
-      <Card>
+      <Card className="app-fade-up app-fade-up-delay-2">
         <CardHeader>
           <CardTitle className="text-sm font-medium text-muted-foreground">App Information</CardTitle>
         </CardHeader>

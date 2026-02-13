@@ -174,7 +174,7 @@ global.caches = {
 
 // Mock localStorage
 const localStorageMock = {
-  getItem: vi.fn((_key: string) => null),
+  getItem: vi.fn(() => null),
   setItem: vi.fn(),
   removeItem: vi.fn(),
   clear: vi.fn(),
