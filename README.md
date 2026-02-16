@@ -13,6 +13,7 @@ A modern Progressive Web App (PWA) for tracking your shower habits and maintaini
 - **Calendar view** - Visual history of your shower habits
 - **Time tracking** - See how long since your last shower
 - **Streak tracking** - Monitor your hygiene consistency
+- **Swipe navigation** - Move between pages with left/right swipes
 
 ### 📱 PWA Capabilities
 - **Installable** - Add to home screen on mobile and desktop
@@ -55,8 +56,8 @@ A modern Progressive Web App (PWA) for tracking your shower habits and maintaini
 ## 🏗️ Development
 
 ### Prerequisites
-- Node.js 18+ 
-- pnpm 9+ (recommended) or npm/yarn
+- Node.js 20.11.1+
+- pnpm 10+ (recommended) or npm/yarn
 
 ### Setup
 ```bash
@@ -74,6 +75,7 @@ pnpm run dev
 ### Available Scripts
 ```bash
 pnpm run dev          # Start development server
+pnpm run clean        # Remove generated build/test artifacts
 pnpm run build        # Build for production
 pnpm run build:github # Build for GitHub Pages
 pnpm run test         # Run unit tests
@@ -88,7 +90,7 @@ pnpm run preview      # Preview production build
 pnpm run test
 
 # Test deployment readiness
-./test-deployment.sh
+./scripts/test-deployment.sh
 
 # Run E2E tests (requires browser setup)
 pnpm run test:e2e

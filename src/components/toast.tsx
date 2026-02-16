@@ -136,7 +136,7 @@ function ToastContainer() {
   const orderedToasts = [...toasts].reverse();
 
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2 max-w-sm w-full">
+    <div className="fixed top-4 left-4 right-4 z-50 space-y-2 sm:left-auto sm:right-4 sm:w-full sm:max-w-sm">
       {orderedToasts.map((toast) => (
         <ToastItem key={toast.id} toast={toast} />
       ))}
@@ -182,9 +182,9 @@ function ToastItem({ toast }: { toast: ToastWithAnimation }) {
         <div className="flex items-start gap-3">
           <Icon className={cn('h-5 w-5 mt-0.5 flex-shrink-0', iconColors[toast.type])} />
           <div className="flex-1 min-w-0">
-            <div className="font-medium text-sm">{toast.title}</div>
+            <div className="font-medium text-sm break-words">{toast.title}</div>
             {toast.description && (
-              <div className="text-sm opacity-90 mt-1">{toast.description}</div>
+              <div className="text-sm opacity-90 mt-1 break-words">{toast.description}</div>
             )}
             {toast.action && (
               <Button
