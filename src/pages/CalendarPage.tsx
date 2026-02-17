@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Calendar } from '../components/Calendar';
 import { ShowerDetails } from '../components/ShowerDetails';
 import { CalendarSkeleton } from '../components/loading-skeleton';
@@ -12,6 +12,7 @@ export function CalendarPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedShowers, setSelectedShowers] = useState<ShowerEntry[]>([]);
   const [calendarRefreshTrigger, setCalendarRefreshTrigger] = useState(0);
+  const lastShownErrorRef = useRef<string | null>(null);
 
   const handleDayClick = (date: Date, showers: ShowerEntry[]) => {
     setSelectedDate(date);
@@ -53,10 +54,19 @@ export function CalendarPage() {
     }
   };
 
-  // Show error toast if there's an error
-  if (error) {
+  useEffect(() => {
+    if (!error) {
+      lastShownErrorRef.current = null;
+      return;
+    }
+
+    if (lastShownErrorRef.current === error) {
+      return;
+    }
+
     showError('Failed to load calendar', error);
-  }
+    lastShownErrorRef.current = error;
+  }, [error, showError]);
 
   if (isLoading) {
     return (

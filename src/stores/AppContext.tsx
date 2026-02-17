@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
 import type { AppState, ShowerEntry, UserSettings } from '../types';
 import { DatabaseService, ShowerService, SettingsService, MetadataService } from '../lib/database-service';
+import { DEFAULT_SETTINGS } from '../lib/database-services/default-settings';
 
 // Action types
 export type AppAction =
@@ -24,14 +25,8 @@ interface ExtendedAppState extends AppState {
 const initialState: ExtendedAppState = {
   showers: [],
   settings: {
-    theme: 'system',
-    firstDayOfWeek: 0,
-    notificationsEnabled: false,
-    notificationThresholdDays: 3,
-    projectInfo: {
-      githubRepo: 'https://github.com/user/shower-tracker',
-      author: 'Shower Tracker App'
-    }
+    ...DEFAULT_SETTINGS,
+    projectInfo: { ...DEFAULT_SETTINGS.projectInfo }
   },
   lastNotificationCheck: null,
   isLoading: true,

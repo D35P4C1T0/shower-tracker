@@ -6,7 +6,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   notificationsEnabled: false,
   notificationThresholdDays: 3,
   projectInfo: {
-    githubRepo: 'https://github.com/user/shower-tracker',
-    author: 'Shower Tracker App'
+    githubRepo: 'https://github.com/D35P4C1T0/shower-tracker',
+    author: 'D35P4C1T0'
   }
 };

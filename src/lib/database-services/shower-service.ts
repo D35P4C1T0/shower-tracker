@@ -184,4 +184,23 @@ export class ShowerService {
       await FallbackShowerService.updateShower(id, updates);
     }
   }
+
+  static async clearAllShowers(): Promise<void> {
+    const storageType = getRequiredStorageType();
+
+    if (storageType === 'localstorage') {
+      return await FallbackShowerService.clearAllShowers();
+    }
+
+    if (storageType === 'none') {
+      return;
+    }
+
+    try {
+      await db.showers.clear();
+    } catch (error) {
+      console.warn('IndexedDB failed, trying localStorage fallback:', error);
+      await FallbackShowerService.clearAllShowers();
+    }
+  }
 }

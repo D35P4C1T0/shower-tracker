@@ -112,4 +112,46 @@ export class MetadataService {
       await FallbackMetadataService.setLastNotificationCheck(date);
     }
   }
+
+  static async getAllMetadata(): Promise<Record<string, string>> {
+    const storageType = getRequiredStorageType();
+
+    if (storageType === 'localstorage') {
+      return await FallbackMetadataService.getAllMetadata();
+    }
+
+    if (storageType === 'none') {
+      return {};
+    }
+
+    try {
+      const metadataEntries = await db.metadata.toArray();
+      return metadataEntries.reduce<Record<string, string>>((result, entry) => {
+        result[entry.key] = entry.value;
+        return result;
+      }, {});
+    } catch (error) {
+      console.warn('IndexedDB failed, trying localStorage fallback:', error);
+      return await FallbackMetadataService.getAllMetadata();
+    }
+  }
+
+  static async clearAllMetadata(): Promise<void> {
+    const storageType = getRequiredStorageType();
+
+    if (storageType === 'localstorage') {
+      return await FallbackMetadataService.clearAllMetadata();
+    }
+
+    if (storageType === 'none') {
+      return;
+    }
+
+    try {
+      await db.metadata.clear();
+    } catch (error) {
+      console.warn('IndexedDB failed, trying localStorage fallback:', error);
+      await FallbackMetadataService.clearAllMetadata();
+    }
+  }
 }

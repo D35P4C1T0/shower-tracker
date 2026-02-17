@@ -14,8 +14,8 @@ export interface NotificationOptions {
 
 export class NotificationService {
   private static readonly NOTIFICATION_TAG = 'shower-reminder';
-  private static readonly DEFAULT_ICON = '/vite.svg';
-  private static readonly DEFAULT_BADGE = '/vite.svg';
+  private static readonly DEFAULT_ICON = 'pwa-192x192.png';
+  private static readonly DEFAULT_BADGE = 'pwa-64x64.png';
 
   /**
    * Check if notifications are supported in the current browser
@@ -75,8 +75,8 @@ export class NotificationService {
 
       const notification = new Notification(options.title, {
         body: options.body,
-        icon: options.icon || this.DEFAULT_ICON,
-        badge: options.badge || this.DEFAULT_BADGE,
+        icon: options.icon || this.withBasePath(this.DEFAULT_ICON),
+        badge: options.badge || this.withBasePath(this.DEFAULT_BADGE),
         tag: options.tag || this.NOTIFICATION_TAG,
         requireInteraction: options.requireInteraction || false,
         silent: false
@@ -243,5 +243,10 @@ export class NotificationService {
     } else {
       return `⏰ Urgent: It's been ${days} days since your last shower!`;
     }
+  }
+
+  private static withBasePath(path: string): string {
+    const baseUrl = import.meta.env.BASE_URL || '/';
+    return `${baseUrl.replace(/\/$/, '')}/${path.replace(/^\//, '')}`;
   }
 }

@@ -1,12 +1,17 @@
 import { useCallback, useEffect, useRef } from 'react';
 import { useAppContext } from '../stores/AppContext';
 import { NotificationService, type NotificationPermission } from '../lib/notification-service';
-import { MetadataService } from '../lib/database-service';
+import { MetadataService, SettingsService } from '../lib/database-service';
 import { NOTIFICATION_CONSTANTS } from '../lib/constants';
 
-export function useNotifications() {
+interface UseNotificationsOptions {
+  enableScheduler?: boolean;
+}
+
+export function useNotifications(options: UseNotificationsOptions = {}) {
+  const { enableScheduler = false } = options;
   const { state, dispatch } = useAppContext();
-  const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const checkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   /**
    * Request notification permission from the user
@@ -16,7 +21,7 @@ export function useNotifications() {
       const permission = await NotificationService.requestPermission();
       
       if (permission === 'granted') {
-        // If permission was granted, enable notifications in settings
+        await SettingsService.updateSetting('notificationsEnabled', true);
         dispatch({ 
           type: 'UPDATE_SETTING', 
           payload: { key: 'notificationsEnabled', value: true } 
@@ -181,6 +186,11 @@ export function useNotifications() {
 
   // Set up notification checking when notifications are enabled
   useEffect(() => {
+    if (!enableScheduler) {
+      stopNotificationChecking();
+      return;
+    }
+
     if (state.settings.notificationsEnabled && getPermissionStatus() === 'granted') {
       startNotificationChecking();
     } else {
@@ -191,19 +201,22 @@ export function useNotifications() {
     return () => {
       stopNotificationChecking();
     };
-  }, [state.settings.notificationsEnabled, startNotificationChecking, stopNotificationChecking, getPermissionStatus]);
+  }, [enableScheduler, state.settings.notificationsEnabled, startNotificationChecking, stopNotificationChecking, getPermissionStatus]);
 
   // Check for notifications on app startup
   useEffect(() => {
+    if (!enableScheduler) {
+      return;
+    }
+
     if (!state.isLoading && state.settings.notificationsEnabled) {
-      // Delay initial check to allow UI to settle
       const timeoutId = setTimeout(() => {
         checkAndSendNotification();
       }, NOTIFICATION_CONSTANTS.INITIAL_CHECK_DELAY_MS);
 
       return () => clearTimeout(timeoutId);
     }
-  }, [state.isLoading, state.settings.notificationsEnabled, checkAndSendNotification]);
+  }, [enableScheduler, state.isLoading, state.settings.notificationsEnabled, checkAndSendNotification]);
 
   return {
     // Permission management

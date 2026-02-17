@@ -3,6 +3,7 @@ import { StorageChecker } from '../storage-fallback';
 import type { ShowerEntry, UserSettings } from '../../types';
 import { SettingsService } from './settings-service';
 import { ShowerService } from './shower-service';
+import { MetadataService } from './metadata-service';
 import { getStorageType, setStorageType, type StorageType } from './storage-state';
 
 export class DatabaseService {
@@ -42,9 +43,11 @@ export class DatabaseService {
   }
 
   static async clearAllData(): Promise<void> {
-    await db.showers.clear();
-    await db.settings.clear();
-    await db.metadata.clear();
+    await Promise.all([
+      ShowerService.clearAllShowers(),
+      SettingsService.clearSettings(),
+      MetadataService.clearAllMetadata()
+    ]);
   }
 
   static async exportData(): Promise<{
@@ -52,14 +55,11 @@ export class DatabaseService {
     settings: UserSettings;
     metadata: Record<string, string>;
   }> {
-    const showers = await ShowerService.getAllShowers();
-    const settings = await SettingsService.getSettings();
-    const metadataEntries = await db.metadata.toArray();
-
-    const metadata: Record<string, string> = {};
-    metadataEntries.forEach(entry => {
-      metadata[entry.key] = entry.value;
-    });
+    const [showers, settings, metadata] = await Promise.all([
+      ShowerService.getAllShowers(),
+      SettingsService.getSettings(),
+      MetadataService.getAllMetadata()
+    ]);
 
     return { showers, settings, metadata };
   }

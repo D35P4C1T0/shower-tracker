@@ -22,7 +22,7 @@ function App() {
   const transitionTimerRef = useRef<number | null>(null)
   
   // Initialize notifications
-  useNotifications()
+  useNotifications({ enableScheduler: true })
 
   useEffect(() => {
     return () => {

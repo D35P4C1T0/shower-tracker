@@ -1,4 +1,5 @@
 import type { ShowerEntry, UserSettings } from '../types';
+import { DEFAULT_SETTINGS } from './database-services/default-settings';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -6,18 +7,6 @@ const STORAGE_KEYS = {
   SETTINGS: 'shower-tracker-settings',
   METADATA: 'shower-tracker-metadata'
 } as const;
-
-// Default settings
-const DEFAULT_SETTINGS: UserSettings = {
-  theme: 'system',
-  firstDayOfWeek: 0,
-  notificationsEnabled: false,
-  notificationThresholdDays: 3,
-  projectInfo: {
-    githubRepo: 'https://github.com/user/shower-tracker',
-    author: 'Shower Tracker App'
-  }
-};
 
 // Check if localStorage is available
 function isLocalStorageAvailable(): boolean {
@@ -53,17 +42,16 @@ function safeSetItem(key: string, value: string): boolean {
   }
 }
 
-// Removed unused function - keeping for potential future use
-// function safeRemoveItem(key: string): boolean {
-//   try {
-//     if (!isLocalStorageAvailable()) return false;
-//     localStorage.removeItem(key);
-//     return true;
-//   } catch (error) {
-//     console.warn('Failed to remove from localStorage:', error);
-//     return false;
-//   }
-// }
+function safeRemoveItem(key: string): boolean {
+  try {
+    if (!isLocalStorageAvailable()) return false;
+    localStorage.removeItem(key);
+    return true;
+  } catch (error) {
+    console.warn('Failed to remove from localStorage:', error);
+    return false;
+  }
+}
 
 // Fallback shower service
 export class FallbackShowerService {
@@ -135,6 +123,13 @@ export class FallbackShowerService {
       throw new Error('Failed to update shower data');
     }
   }
+
+  static async clearAllShowers(): Promise<void> {
+    const success = safeRemoveItem(STORAGE_KEYS.SHOWERS);
+    if (!success) {
+      throw new Error('Failed to clear shower data');
+    }
+  }
 }
 
 // Fallback settings service
@@ -168,12 +163,19 @@ export class FallbackSettingsService {
     const updatedSettings = { ...currentSettings, [key]: value };
     await this.saveSettings(updatedSettings);
   }
+
+  static async clearSettings(): Promise<void> {
+    const success = safeRemoveItem(STORAGE_KEYS.SETTINGS);
+    if (!success) {
+      throw new Error('Failed to clear settings data');
+    }
+  }
 }
 
 // Fallback metadata service
 export class FallbackMetadataService {
   static async setMetadata(key: string, value: string): Promise<void> {
-    const metadata = await this.getAllMetadata();
+    const metadata = await this.getAllMetadataEntries();
     metadata[key] = {
       value,
       updatedAt: new Date().toISOString()
@@ -186,12 +188,12 @@ export class FallbackMetadataService {
   }
 
   static async getMetadata(key: string): Promise<string | null> {
-    const metadata = await this.getAllMetadata();
+    const metadata = await this.getAllMetadataEntries();
     return metadata[key]?.value || null;
   }
 
   static async deleteMetadata(key: string): Promise<void> {
-    const metadata = await this.getAllMetadata();
+    const metadata = await this.getAllMetadataEntries();
     delete metadata[key];
     
     const success = safeSetItem(STORAGE_KEYS.METADATA, JSON.stringify(metadata));
@@ -209,7 +211,22 @@ export class FallbackMetadataService {
     await this.setMetadata('lastNotificationCheck', date.toISOString());
   }
 
-  private static async getAllMetadata(): Promise<Record<string, { value: string; updatedAt: string }>> {
+  static async getAllMetadata(): Promise<Record<string, string>> {
+    const metadata = await this.getAllMetadataEntries();
+    return Object.entries(metadata).reduce<Record<string, string>>((result, [key, item]) => {
+      result[key] = item.value;
+      return result;
+    }, {});
+  }
+
+  static async clearAllMetadata(): Promise<void> {
+    const success = safeRemoveItem(STORAGE_KEYS.METADATA);
+    if (!success) {
+      throw new Error('Failed to clear metadata');
+    }
+  }
+
+  private static async getAllMetadataEntries(): Promise<Record<string, { value: string; updatedAt: string }>> {
     const data = safeGetItem(STORAGE_KEYS.METADATA);
     if (!data) return {};
     

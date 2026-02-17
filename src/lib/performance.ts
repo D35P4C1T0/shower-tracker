@@ -41,8 +41,7 @@ interface LayoutShiftPerformanceEntry extends PerformanceEntry {
 
 // Simple performance observer for Core Web Vitals
 export function observeWebVitals(callback: (metric: WebVitalsMetric) => void) {
-  // Only run in production and if APIs are available
-  if (process.env.NODE_ENV !== 'production' || typeof window === 'undefined') {
+  if (typeof window === 'undefined') {
     return;
   }
 

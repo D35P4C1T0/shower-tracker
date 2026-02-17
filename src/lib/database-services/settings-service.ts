@@ -96,4 +96,23 @@ export class SettingsService {
       await FallbackSettingsService.updateSetting(key, value);
     }
   }
+
+  static async clearSettings(): Promise<void> {
+    const storageType = getRequiredStorageType();
+
+    if (storageType === 'localstorage') {
+      return await FallbackSettingsService.clearSettings();
+    }
+
+    if (storageType === 'none') {
+      return;
+    }
+
+    try {
+      await db.settings.clear();
+    } catch (error) {
+      console.warn('IndexedDB failed, trying localStorage fallback:', error);
+      await FallbackSettingsService.clearSettings();
+    }
+  }
 }

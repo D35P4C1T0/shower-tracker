@@ -35,6 +35,21 @@ export function SettingsPage() {
   const { success, error: showError } = useToast()
 
   const [notificationThreshold, setNotificationThreshold] = useState(settings.notificationThresholdDays.toString())
+  const fallbackMessage = getFallbackMessage()
+  const repoUrl = settings.projectInfo.githubRepo
+  const repoDisplay = (() => {
+    try {
+      const url = new URL(repoUrl)
+      const value = url.pathname.replace(/^\/|\/$/g, '')
+      return value || repoUrl
+    } catch {
+      return repoUrl
+    }
+  })()
+  const authorHandle = settings.projectInfo.author.startsWith('@')
+    ? settings.projectInfo.author
+    : `@${settings.projectInfo.author}`
+  const authorProfileUrl = `https://github.com/${authorHandle.replace(/^@/, '')}`
 
   // Update local state when settings change
   useEffect(() => {
@@ -72,7 +87,14 @@ export function SettingsPage() {
   }
 
   const handleRequestPermission = async () => {
-    await requestPermission()
+    const permission = await requestPermission()
+
+    if (permission === 'granted') {
+      success('Notifications enabled', 'Browser permission granted and reminders enabled.')
+      return
+    }
+
+    showError('Permission denied', 'Please allow notifications in browser settings.')
   }
 
   const handleTestNotification = async () => {
@@ -260,9 +282,9 @@ export function SettingsPage() {
               )}
 
               {/* Fallback Message */}
-              {settings.notificationsEnabled && !hasPermission && getFallbackMessage() && (
+              {settings.notificationsEnabled && !hasPermission && fallbackMessage && (
                 <div className="p-3 text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded-md dark:text-blue-400 dark:bg-blue-950/20 dark:border-blue-800">
-                  {getFallbackMessage()}
+                  {fallbackMessage}
                 </div>
               )}
             </div>
@@ -284,12 +306,12 @@ export function SettingsPage() {
               <span className="text-muted-foreground">Repository</span>
             </div>
             <a
-              href="https://github.com/D35P4C1T0/shower-tracker"
+              href={repoUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-primary hover:underline font-mono text-right"
             >
-              D35P4C1T0/shower-tracker
+              {repoDisplay}
             </a>
           </div>
           
@@ -299,12 +321,12 @@ export function SettingsPage() {
               <span className="text-muted-foreground">Creator</span>
             </div>
             <a
-              href="https://github.com/D35P4C1T0"
+              href={authorProfileUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm text-primary hover:underline font-mono text-right"
             >
-              @D35P4C1T0
+              {authorHandle}
             </a>
           </div>
         </CardContent>
