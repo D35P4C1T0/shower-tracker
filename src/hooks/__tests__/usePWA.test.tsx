@@ -1,9 +1,56 @@
-import { describe, it, expect } from 'vitest'
+import { renderHook } from '@testing-library/react'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { usePWA } from '../usePWA'
 
+const { pwaServiceMock } = vi.hoisted(() => ({
+  pwaServiceMock: {
+    registerServiceWorker: vi.fn(),
+    cacheEssentialData: vi.fn(),
+    onUpdateAvailable: vi.fn(),
+    onNetworkStatusChange: vi.fn(),
+    getInstallInfo: vi.fn(),
+    getNetworkStatus: vi.fn(),
+    requestNotificationPermission: vi.fn(),
+    showNotification: vi.fn(),
+    clearCaches: vi.fn(),
+    supportsNotifications: vi.fn(),
+  },
+}))
+
+vi.mock('../../lib/pwa-service', () => ({
+  pwaService: pwaServiceMock,
+}))
+
 describe('usePWA', () => {
-  it('should be defined', () => {
-    expect(usePWA).toBeDefined()
-    expect(typeof usePWA).toBe('function')
+  beforeEach(() => {
+    pwaServiceMock.registerServiceWorker.mockReset()
+    pwaServiceMock.cacheEssentialData.mockReset()
+    pwaServiceMock.onUpdateAvailable.mockReset()
+    pwaServiceMock.onNetworkStatusChange.mockReset()
+    pwaServiceMock.getInstallInfo.mockReset()
+    pwaServiceMock.getNetworkStatus.mockReset()
+    pwaServiceMock.supportsNotifications.mockReset()
+
+    pwaServiceMock.getInstallInfo.mockReturnValue({
+      isInstallable: true,
+      isInstalled: false,
+      installApp: vi.fn(),
+    })
+    pwaServiceMock.getNetworkStatus.mockReturnValue({
+      isOnline: true,
+      isOfflineReady: false,
+    })
+    pwaServiceMock.supportsNotifications.mockReturnValue(true)
+  })
+
+  it('initializes pwa service and exposes state', () => {
+    const { result } = renderHook(() => usePWA())
+
+    expect(pwaServiceMock.registerServiceWorker).toHaveBeenCalledTimes(1)
+    expect(pwaServiceMock.cacheEssentialData).toHaveBeenCalledTimes(1)
+    expect(result.current.isInstallable).toBe(true)
+    expect(result.current.isInstalled).toBe(false)
+    expect(result.current.isOnline).toBe(true)
+    expect(result.current.supportsNotifications).toBe(true)
   })
 })

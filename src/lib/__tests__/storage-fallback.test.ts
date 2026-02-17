@@ -142,6 +142,14 @@ describe('FallbackShowerService', () => {
     expect(showers[0].notes).toBe(newNotes);
   });
 
+  it('clears all showers', async () => {
+    await FallbackShowerService.addShower(new Date());
+    await FallbackShowerService.clearAllShowers();
+
+    const showers = await FallbackShowerService.getAllShowers();
+    expect(showers).toEqual([]);
+  });
+
   it('handles corrupted data gracefully', async () => {
     localStorageMock.setItem('shower-tracker-showers', 'invalid json');
     
@@ -187,6 +195,23 @@ describe('FallbackSettingsService', () => {
     
     const settings = await FallbackSettingsService.getSettings();
     expect(settings.theme).toBe('dark');
+  });
+
+  it('clears saved settings', async () => {
+    await FallbackSettingsService.saveSettings({
+      theme: 'dark',
+      firstDayOfWeek: 1,
+      notificationsEnabled: true,
+      notificationThresholdDays: 7,
+      projectInfo: {
+        githubRepo: 'https://github.com/test/repo',
+        author: 'Test Author'
+      }
+    });
+
+    await FallbackSettingsService.clearSettings();
+    const settings = await FallbackSettingsService.getSettings();
+    expect(settings.theme).toBe('system');
   });
 
   it('handles corrupted settings data', async () => {
@@ -235,6 +260,22 @@ describe('FallbackMetadataService', () => {
   it('returns null for non-existent notification check', async () => {
     const result = await FallbackMetadataService.getLastNotificationCheck();
     expect(result).toBeNull();
+  });
+
+  it('returns all metadata values', async () => {
+    await FallbackMetadataService.setMetadata('a', '1');
+    await FallbackMetadataService.setMetadata('b', '2');
+
+    const metadata = await FallbackMetadataService.getAllMetadata();
+    expect(metadata).toEqual({ a: '1', b: '2' });
+  });
+
+  it('clears metadata', async () => {
+    await FallbackMetadataService.setMetadata('testKey', 'testValue');
+    await FallbackMetadataService.clearAllMetadata();
+
+    const metadata = await FallbackMetadataService.getAllMetadata();
+    expect(metadata).toEqual({});
   });
 
   it('handles corrupted metadata', async () => {

@@ -88,6 +88,7 @@ Object.defineProperty(window, 'navigator', {
   writable: true,
   value: {
     ...window.navigator,
+    userAgent: 'vitest',
     serviceWorker: {
       register: vi.fn().mockResolvedValue({}),
       ready: Promise.resolve({}),

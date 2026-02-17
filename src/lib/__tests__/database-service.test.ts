@@ -134,8 +134,8 @@ describe('DatabaseService', () => {
         notificationsEnabled: false,
         notificationThresholdDays: 3,
         projectInfo: {
-          githubRepo: 'https://github.com/user/shower-tracker',
-          author: 'Shower Tracker App'
+          githubRepo: 'https://github.com/D35P4C1T0/shower-tracker',
+          author: 'D35P4C1T0'
         }
       });
     });
@@ -254,6 +254,14 @@ describe('DatabaseService', () => {
       const retrievedDate = await MetadataService.getLastNotificationCheck();
       
       expect(retrievedDate).toEqual(testDate);
+    });
+
+    it('should return all metadata as a key-value map', async () => {
+      await MetadataService.setMetadata('first', '1');
+      await MetadataService.setMetadata('second', '2');
+
+      const metadata = await MetadataService.getAllMetadata();
+      expect(metadata).toEqual({ first: '1', second: '2' });
     });
 
     it('should return null for last notification check when not set', async () => {

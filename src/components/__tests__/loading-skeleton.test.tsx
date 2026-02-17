@@ -1,29 +1,30 @@
-import { describe, it, expect } from 'vitest'
+import { render } from '@testing-library/react'
+import { describe, expect, it } from 'vitest'
 import { Skeleton, CardSkeleton, CalendarSkeleton, SettingsSkeleton, TimeSkeleton } from '../loading-skeleton'
 
 describe('LoadingSkeleton', () => {
-  it('should export Skeleton component', () => {
-    expect(Skeleton).toBeDefined()
-    expect(typeof Skeleton).toBe('function')
+  it('renders base skeleton class', () => {
+    const { container } = render(<Skeleton />)
+    expect(container.firstElementChild).toHaveClass('animate-pulse')
   })
 
-  it('should export CardSkeleton component', () => {
-    expect(CardSkeleton).toBeDefined()
-    expect(typeof CardSkeleton).toBe('function')
+  it('renders card skeleton blocks', () => {
+    const { container } = render(<CardSkeleton />)
+    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0)
   })
 
-  it('should export CalendarSkeleton component', () => {
-    expect(CalendarSkeleton).toBeDefined()
-    expect(typeof CalendarSkeleton).toBe('function')
+  it('renders calendar skeleton grid', () => {
+    const { container } = render(<CalendarSkeleton />)
+    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(40)
   })
 
-  it('should export SettingsSkeleton component', () => {
-    expect(SettingsSkeleton).toBeDefined()
-    expect(typeof SettingsSkeleton).toBe('function')
+  it('renders settings skeleton cards', () => {
+    const { container } = render(<SettingsSkeleton />)
+    expect(container.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0)
   })
 
-  it('should export TimeSkeleton component', () => {
-    expect(TimeSkeleton).toBeDefined()
-    expect(typeof TimeSkeleton).toBe('function')
+  it('renders time skeleton placeholder', () => {
+    const { container } = render(<TimeSkeleton />)
+    expect(container.querySelectorAll('.animate-pulse').length).toBe(2)
   })
 })

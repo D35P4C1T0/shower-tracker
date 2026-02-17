@@ -153,8 +153,8 @@ describe('NotificationService', () => {
       
       expect(mockNotification).toHaveBeenCalledWith('Test Title', {
         body: 'Test Body',
-        icon: '/vite.svg',
-        badge: '/vite.svg',
+        icon: '/pwa-192x192.png',
+        badge: '/pwa-64x64.png',
         tag: 'shower-reminder',
         requireInteraction: false,
         silent: false

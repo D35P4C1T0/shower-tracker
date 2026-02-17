@@ -13,17 +13,35 @@ describe('Performance utilities', () => {
 
   afterEach(() => {
     vi.unstubAllEnvs();
-    vi.restoreAllMocks();
   });
 
   describe('observeWebVitals', () => {
-    it('should not run in non-production environment', () => {
+    it('should run in development environment', () => {
       vi.stubEnv('NODE_ENV', 'development');
+      const mockPerformance = {
+        getEntriesByType: vi.fn().mockReturnValue([
+          {
+            responseStart: 100,
+            requestStart: 50
+          }
+        ])
+      };
+      
+      Object.defineProperty(global, 'performance', {
+        value: mockPerformance,
+        writable: true
+      });
       const callback = vi.fn();
       
       observeWebVitals(callback);
       
-      expect(callback).not.toHaveBeenCalled();
+      expect(callback).toHaveBeenCalledWith({
+        name: 'TTFB',
+        value: 50,
+        rating: 'good',
+        delta: 50,
+        id: 'ttfb'
+      });
     });
 
     it('should not run when window is undefined', () => {
@@ -82,13 +100,25 @@ describe('Performance utilities', () => {
   });
 
   describe('logWebVitals', () => {
-    it('should only log in development environment', () => {
+    it('logs metrics in development environment', () => {
       vi.stubEnv('NODE_ENV', 'development');
+      const mockPerformance = {
+        getEntriesByType: vi.fn().mockReturnValue([
+          {
+            responseStart: 100,
+            requestStart: 50
+          }
+        ])
+      };
+      
+      Object.defineProperty(global, 'performance', {
+        value: mockPerformance,
+        writable: true
+      });
       
       logWebVitals();
       
-      // Since observeWebVitals doesn't run in development, no logs should occur
-      expect(mockConsoleLog).not.toHaveBeenCalled();
+      expect(mockConsoleLog).toHaveBeenCalledWith('[Performance] TTFB: 50.00ms (good)');
     });
 
     it('should not log in production environment', () => {
