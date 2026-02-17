@@ -212,6 +212,24 @@ describe('DatabaseService', () => {
       const allSettings = await db.settings.toArray();
       expect(allSettings).toHaveLength(1);
     });
+
+    it('normalizes legacy project info values', async () => {
+      await db.settings.add({
+        theme: 'system',
+        firstDayOfWeek: 0,
+        notificationsEnabled: false,
+        notificationThresholdDays: 3,
+        githubRepo: 'https://github.com/user/shower-tracker',
+        author: 'Shower Tracker App'
+      });
+
+      const settings = await SettingsService.getSettings();
+
+      expect(settings.projectInfo).toEqual({
+        githubRepo: 'https://github.com/D35P4C1T0/shower-tracker',
+        author: 'D35P4C1T0'
+      });
+    });
   });
 
   describe('MetadataService', () => {

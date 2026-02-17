@@ -220,6 +220,25 @@ describe('FallbackSettingsService', () => {
     const settings = await FallbackSettingsService.getSettings();
     expect(settings.theme).toBe('system'); // Should return defaults
   });
+
+  it('normalizes legacy project info values', async () => {
+    localStorageMock.setItem('shower-tracker-settings', JSON.stringify({
+      theme: 'system',
+      firstDayOfWeek: 0,
+      notificationsEnabled: false,
+      notificationThresholdDays: 3,
+      projectInfo: {
+        githubRepo: 'https://github.com/user/shower-tracker',
+        author: 'Shower Tracker App'
+      }
+    }));
+
+    const settings = await FallbackSettingsService.getSettings();
+    expect(settings.projectInfo).toEqual({
+      githubRepo: 'https://github.com/D35P4C1T0/shower-tracker',
+      author: 'D35P4C1T0'
+    });
+  });
 });
 
 describe('FallbackMetadataService', () => {

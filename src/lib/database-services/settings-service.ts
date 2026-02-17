@@ -1,7 +1,7 @@
 import { db, type DBUserSettings } from '../database';
 import { FallbackSettingsService } from '../storage-fallback';
 import type { UserSettings } from '../../types';
-import { DEFAULT_SETTINGS } from './default-settings';
+import { DEFAULT_SETTINGS, normalizeProjectInfo } from './default-settings';
 import { getRequiredStorageType } from './storage-state';
 
 export class SettingsService {
@@ -24,16 +24,32 @@ export class SettingsService {
         return DEFAULT_SETTINGS;
       }
 
-      return {
-        theme: settings.theme,
-        firstDayOfWeek: settings.firstDayOfWeek,
-        notificationsEnabled: settings.notificationsEnabled,
-        notificationThresholdDays: settings.notificationThresholdDays,
-        projectInfo: {
-          githubRepo: settings.githubRepo,
-          author: settings.author
-        }
+      const projectInfo = normalizeProjectInfo({
+        githubRepo: settings.githubRepo,
+        author: settings.author
+      });
+
+      const resolvedSettings: UserSettings = {
+        theme: settings.theme ?? DEFAULT_SETTINGS.theme,
+        firstDayOfWeek: settings.firstDayOfWeek ?? DEFAULT_SETTINGS.firstDayOfWeek,
+        notificationsEnabled: settings.notificationsEnabled ?? DEFAULT_SETTINGS.notificationsEnabled,
+        notificationThresholdDays: settings.notificationThresholdDays ?? DEFAULT_SETTINGS.notificationThresholdDays,
+        projectInfo
       };
+
+      const requiresRepair =
+        settings.theme !== resolvedSettings.theme ||
+        settings.firstDayOfWeek !== resolvedSettings.firstDayOfWeek ||
+        settings.notificationsEnabled !== resolvedSettings.notificationsEnabled ||
+        settings.notificationThresholdDays !== resolvedSettings.notificationThresholdDays ||
+        settings.githubRepo !== resolvedSettings.projectInfo.githubRepo ||
+        settings.author !== resolvedSettings.projectInfo.author;
+
+      if (requiresRepair) {
+        await this.saveSettings(resolvedSettings);
+      }
+
+      return resolvedSettings;
     } catch (error) {
       console.warn('IndexedDB failed, trying localStorage fallback:', error);
       return await FallbackSettingsService.getSettings();

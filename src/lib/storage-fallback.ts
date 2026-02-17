@@ -1,5 +1,5 @@
 import type { ShowerEntry, UserSettings } from '../types';
-import { DEFAULT_SETTINGS } from './database-services/default-settings';
+import { DEFAULT_SETTINGS, normalizeProjectInfo } from './database-services/default-settings';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -139,9 +139,23 @@ export class FallbackSettingsService {
     if (!data) return DEFAULT_SETTINGS;
     
     try {
-      const settings = JSON.parse(data) as UserSettings;
-      // Merge with defaults to handle missing properties
-      return { ...DEFAULT_SETTINGS, ...settings };
+      const settings = JSON.parse(data) as Partial<UserSettings> & {
+        githubRepo?: string;
+        author?: string;
+      };
+
+      const projectInfo = normalizeProjectInfo(
+        settings.projectInfo ?? {
+          githubRepo: settings.githubRepo,
+          author: settings.author
+        }
+      );
+
+      return {
+        ...DEFAULT_SETTINGS,
+        ...settings,
+        projectInfo
+      };
     } catch (error) {
       console.warn('Failed to parse settings data:', error);
       return DEFAULT_SETTINGS;

@@ -10,6 +10,7 @@ import { SettingsSkeleton } from '@/components/loading-skeleton'
 import { useSettings } from '@/hooks/useSettings'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useToast } from '@/components/toast'
+import { DEFAULT_SETTINGS } from '@/lib/database-services/default-settings'
 import { Github, User, Bell, BellOff, AlertCircle } from 'lucide-react'
 
 export function SettingsPage() {
@@ -36,7 +37,8 @@ export function SettingsPage() {
 
   const [notificationThreshold, setNotificationThreshold] = useState(settings.notificationThresholdDays.toString())
   const fallbackMessage = getFallbackMessage()
-  const repoUrl = settings.projectInfo.githubRepo
+  const projectInfo = settings.projectInfo ?? DEFAULT_SETTINGS.projectInfo
+  const repoUrl = projectInfo.githubRepo || DEFAULT_SETTINGS.projectInfo.githubRepo
   const repoDisplay = (() => {
     try {
       const url = new URL(repoUrl)
@@ -46,9 +48,10 @@ export function SettingsPage() {
       return repoUrl
     }
   })()
-  const authorHandle = settings.projectInfo.author.startsWith('@')
-    ? settings.projectInfo.author
-    : `@${settings.projectInfo.author}`
+  const authorValue = projectInfo.author || DEFAULT_SETTINGS.projectInfo.author
+  const authorHandle = authorValue.startsWith('@')
+    ? authorValue
+    : `@${authorValue}`
   const authorProfileUrl = `https://github.com/${authorHandle.replace(/^@/, '')}`
 
   // Update local state when settings change
