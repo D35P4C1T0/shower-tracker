@@ -25,7 +25,11 @@ export function NotificationBanner() {
   // Show fallback message if notifications can't be sent but should be
   if (fallbackMessage && permissionStatus !== 'granted') {
     return (
-      <div className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-950/20 dark:border-amber-800 app-fade-up">
+      <div
+        className="mb-4 p-4 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-950/20 dark:border-amber-800 app-fade-up cursor-pointer"
+        onClick={() => setIsDismissed(true)}
+        data-testid="notification-banner"
+      >
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
             <AlertCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
@@ -44,7 +48,10 @@ export function NotificationBanner() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setIsDismissed(true)}
+            onClick={(event) => {
+              event.stopPropagation()
+              setIsDismissed(true)
+            }}
             className="text-amber-600 hover:text-amber-700 dark:text-amber-400 dark:hover:text-amber-300"
           >
             <X className="h-4 w-4" />
@@ -57,7 +64,11 @@ export function NotificationBanner() {
   // Show permission request banner if notifications are enabled but permission not granted
   if (permissionStatus !== 'granted' && isEnabled) {
     return (
-      <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950/20 dark:border-blue-800 app-fade-up">
+      <div
+        className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950/20 dark:border-blue-800 app-fade-up cursor-pointer"
+        onClick={() => setIsDismissed(true)}
+        data-testid="notification-banner"
+      >
         <div className="flex items-start justify-between">
           <div className="flex items-start gap-3">
             <Bell className="h-5 w-5 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
@@ -70,7 +81,10 @@ export function NotificationBanner() {
                 Click below to enable shower reminders.
               </p>
               <Button
-                onClick={requestPermission}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  requestPermission()
+                }}
                 size="sm"
                 className="bg-blue-600 hover:bg-blue-700 text-white"
               >
@@ -82,7 +96,10 @@ export function NotificationBanner() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setIsDismissed(true)}
+            onClick={(event) => {
+              event.stopPropagation()
+              setIsDismissed(true)
+            }}
             className="text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
           >
             <X className="h-4 w-4" />

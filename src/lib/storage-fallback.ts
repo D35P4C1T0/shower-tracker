@@ -1,5 +1,6 @@
 import type { ShowerEntry, UserSettings } from '../types';
 import { DEFAULT_SETTINGS, normalizeProjectInfo } from './database-services/default-settings';
+import { validateShowerNotes, validateShowerTimestamp } from './shower-validation';
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -56,6 +57,9 @@ function safeRemoveItem(key: string): boolean {
 // Fallback shower service
 export class FallbackShowerService {
   static async addShower(timestamp: Date = new Date(), notes?: string): Promise<ShowerEntry> {
+    validateShowerTimestamp(timestamp);
+    validateShowerNotes(notes);
+
     const showers = await this.getAllShowers();
     const id = Date.now().toString();
     const newShower: ShowerEntry = { id, timestamp, notes };
@@ -113,6 +117,11 @@ export class FallbackShowerService {
   }
 
   static async updateShower(id: string, updates: Partial<Omit<ShowerEntry, 'id'>>): Promise<void> {
+    if (updates.timestamp !== undefined) {
+      validateShowerTimestamp(updates.timestamp);
+    }
+    validateShowerNotes(updates.notes);
+
     const showers = await this.getAllShowers();
     const updatedShowers = showers.map(shower =>
       shower.id === id ? { ...shower, ...updates } : shower

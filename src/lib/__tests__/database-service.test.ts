@@ -39,6 +39,12 @@ describe('DatabaseService', () => {
       expect(shower.id).toBeDefined();
     });
 
+    it('should reject shower entries in the future', async () => {
+      const futureDate = new Date(Date.now() + 60 * 60 * 1000);
+
+      await expect(ShowerService.addShower(futureDate)).rejects.toThrow('Cannot record a shower in the future');
+    });
+
     it('should retrieve all showers in reverse chronological order', async () => {
       const date1 = new Date('2024-01-15T10:00:00Z');
       const date2 = new Date('2024-01-16T10:00:00Z');
@@ -121,6 +127,15 @@ describe('DatabaseService', () => {
         timestamp: newDate,
         notes: 'Updated'
       });
+    });
+
+    it('should reject updating a shower into the future', async () => {
+      const shower = await ShowerService.addShower(new Date(), 'Original');
+      const futureDate = new Date(Date.now() + 60 * 60 * 1000);
+
+      await expect(ShowerService.updateShower(shower.id, { timestamp: futureDate })).rejects.toThrow(
+        'Cannot record a shower in the future'
+      );
     });
   });
 

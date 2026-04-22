@@ -190,6 +190,50 @@
     }
   }
 
+  @keyframes calendar-month-enter-forward {
+    from {
+      opacity: 0;
+      transform: translateX(72%);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes calendar-month-exit-forward {
+    from {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateX(-72%);
+    }
+  }
+
+  @keyframes calendar-month-enter-backward {
+    from {
+      opacity: 0;
+      transform: translateX(-72%);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes calendar-month-exit-backward {
+    from {
+      opacity: 1;
+      transform: translateX(0);
+    }
+    to {
+      opacity: 0;
+      transform: translateX(72%);
+    }
+  }
+
   .app-fade-in {
     animation: app-fade-in var(--motion-duration-fast) var(--motion-ease-standard) both;
   }
@@ -228,6 +272,22 @@
 
   .app-dialog-content[data-state="closed"] {
     animation: app-dialog-content-out var(--motion-duration-fast) var(--motion-ease-standard) both;
+  }
+
+  .calendar-month-enter-forward {
+    animation: calendar-month-enter-forward var(--motion-duration-base) var(--motion-ease-standard) both;
+  }
+
+  .calendar-month-exit-forward {
+    animation: calendar-month-exit-forward var(--motion-duration-base) var(--motion-ease-standard) both;
+  }
+
+  .calendar-month-enter-backward {
+    animation: calendar-month-enter-backward var(--motion-duration-base) var(--motion-ease-standard) both;
+  }
+
+  .calendar-month-exit-backward {
+    animation: calendar-month-exit-backward var(--motion-duration-base) var(--motion-ease-standard) both;
   }
 
   /* Performance utilities */

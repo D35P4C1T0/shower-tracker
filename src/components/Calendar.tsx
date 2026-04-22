@@ -1,7 +1,10 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from './ui/dialog';
+import { Input } from './ui/input';
+import { Label } from './ui/label';
 import { CalendarSkeleton } from './loading-skeleton';
 import { useShowers } from '../hooks/useShowers';
 import { useSettings } from '../hooks/useSettings';
@@ -27,28 +30,37 @@ interface CalendarProps {
 }
 
 interface LoadMonthOptions {
-  commitDate: boolean;
   clearDataOnError: boolean;
 }
 
+type MonthTransitionDirection = 'forward' | 'backward';
+
 export function Calendar({ onDayClick, onTodaySelected, refreshTrigger = 0 }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [monthTransition, setMonthTransition] = useState<{
+    direction: MonthTransitionDirection;
+    previousDate: Date;
+  } | null>(null);
+  const [goToMonthOpen, setGoToMonthOpen] = useState(false);
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth());
+  const [selectedYear, setSelectedYear] = useState(currentDate.getFullYear().toString());
   const [monthShowers, setMonthShowers] = useState<ShowerEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isMonthLoading, setIsMonthLoading] = useState(false);
   const [hasLoadedInitialMonth, setHasLoadedInitialMonth] = useState(false);
-  const [isTransitioning, setIsTransitioning] = useState(false);
 
   const { getShowersByDateRange } = useShowers();
   const { settings } = useSettings();
 
   const requestIdRef = useRef(0);
+  const currentDateRef = useRef(currentDate);
   const initialDateRef = useRef(currentDate);
+  const previousRefreshTriggerRef = useRef(refreshTrigger);
 
   const loadMonthShowers = useCallback(async (date: Date, options: LoadMonthOptions): Promise<ShowerEntry[] | null> => {
     const requestId = requestIdRef.current + 1;
     requestIdRef.current = requestId;
 
-    setIsLoading(true);
+    setIsMonthLoading(true);
 
     try {
       const startDate = getFirstDayOfMonth(date);
@@ -57,9 +69,6 @@ export function Calendar({ onDayClick, onTodaySelected, refreshTrigger = 0 }: Ca
 
       if (requestId === requestIdRef.current) {
         setMonthShowers(showers);
-        if (options.commitDate) {
-          setCurrentDate(date);
-        }
       }
       return showers;
     } catch (error) {
@@ -72,7 +81,7 @@ export function Calendar({ onDayClick, onTodaySelected, refreshTrigger = 0 }: Ca
       return null;
     } finally {
       if (requestId === requestIdRef.current) {
-        setIsLoading(false);
+        setIsMonthLoading(false);
         setHasLoadedInitialMonth(true);
       }
     }
@@ -80,7 +89,6 @@ export function Calendar({ onDayClick, onTodaySelected, refreshTrigger = 0 }: Ca
 
   useEffect(() => {
     void loadMonthShowers(initialDateRef.current, {
-      commitDate: false,
       clearDataOnError: true,
     });
   }, [loadMonthShowers]);
@@ -96,11 +104,15 @@ export function Calendar({ onDayClick, onTodaySelected, refreshTrigger = 0 }: Ca
       return;
     }
 
-    void loadMonthShowers(currentDate, {
-      commitDate: false,
+    if (previousRefreshTriggerRef.current === refreshTrigger) {
+      return;
+    }
+
+    previousRefreshTriggerRef.current = refreshTrigger;
+    void loadMonthShowers(currentDateRef.current, {
       clearDataOnError: false,
     });
-  }, [refreshTrigger, hasLoadedInitialMonth, currentDate, loadMonthShowers]);
+  }, [refreshTrigger, hasLoadedInitialMonth, loadMonthShowers]);
 
   const calendarGrid = useMemo(() => {
     return generateCalendarGrid(currentDate, settings.firstDayOfWeek);
@@ -109,6 +121,13 @@ export function Calendar({ onDayClick, onTodaySelected, refreshTrigger = 0 }: Ca
   const dayNames = useMemo(() => {
     return getDayNames(settings.firstDayOfWeek);
   }, [settings.firstDayOfWeek]);
+
+  const monthOptions = useMemo(() => (
+    Array.from({ length: 12 }, (_, monthIndex) => ({
+      value: monthIndex,
+      label: new Date(2000, monthIndex, 1).toLocaleDateString('en-US', { month: 'short' }),
+    }))
+  ), []);
 
   const showersByDate = useMemo(() => {
     const grouped = new Map<string, ShowerEntry[]>();
@@ -121,6 +140,12 @@ export function Calendar({ onDayClick, onTodaySelected, refreshTrigger = 0 }: Ca
       grouped.get(dateKey)!.push(shower);
     });
 
+    grouped.forEach((showers) => {
+      showers.sort((first, second) =>
+        new Date(first.timestamp).getTime() - new Date(second.timestamp).getTime()
+      );
+    });
+
     return grouped;
   }, [monthShowers]);
 
@@ -129,17 +154,38 @@ export function Calendar({ onDayClick, onTodaySelected, refreshTrigger = 0 }: Ca
     first.getFullYear() === second.getFullYear()
   );
 
-  const navigateToMonth = async (nextDate: Date) => {
-    if (isLoading || isSameMonth(currentDate, nextDate)) {
-      return;
+  const getMonthDirection = (from: Date, to: Date): MonthTransitionDirection => {
+    const fromMonthIndex = from.getFullYear() * 12 + from.getMonth();
+    const toMonthIndex = to.getFullYear() * 12 + to.getMonth();
+    return toMonthIndex > fromMonthIndex ? 'forward' : 'backward';
+  };
+
+  const renderMonthHeader = (date: Date, includeTestId = true) => (
+    <>
+      <CardTitle className="text-base sm:text-xl" data-testid={includeTestId ? 'calendar-month' : undefined}>
+        {getMonthName(date)}
+      </CardTitle>
+      <span className="text-xs font-medium text-muted-foreground/70 tracking-wider uppercase mt-0.5" aria-label="Year">
+        {getYear(date)}
+      </span>
+    </>
+  );
+
+  const navigateToMonth = async (nextDate: Date): Promise<ShowerEntry[] | null> => {
+    const previousDate = currentDateRef.current;
+    if (isSameMonth(previousDate, nextDate)) {
+      return null;
     }
 
-    setIsTransitioning(true);
-    await loadMonthShowers(nextDate, {
-      commitDate: true,
+    setMonthTransition({
+      direction: getMonthDirection(previousDate, nextDate),
+      previousDate,
+    });
+    currentDateRef.current = nextDate;
+    setCurrentDate(nextDate);
+    return await loadMonthShowers(nextDate, {
       clearDataOnError: false,
     });
-    setIsTransitioning(false);
   };
 
   const goToPreviousMonth = () => {
@@ -153,23 +199,29 @@ export function Calendar({ onDayClick, onTodaySelected, refreshTrigger = 0 }: Ca
   const goToToday = async () => {
     const today = new Date();
 
-    if (isSameMonth(currentDate, today)) {
+    if (isSameMonth(currentDateRef.current, today)) {
       onTodaySelected?.(today, showersByDate.get(today.toDateString()) || []);
       return;
     }
 
-    if (isLoading) {
+    const loadedShowers = await navigateToMonth(today);
+    onTodaySelected?.(today, loadedShowers ? getShowersForDate(loadedShowers, today) : []);
+  };
+
+  const openGoToMonth = () => {
+    setSelectedMonth(currentDate.getMonth());
+    setSelectedYear(currentDate.getFullYear().toString());
+    setGoToMonthOpen(true);
+  };
+
+  const handleGoToMonth = async () => {
+    const year = Number(selectedYear);
+    if (!Number.isInteger(year) || year < 1900 || year > 2100) {
       return;
     }
 
-    setIsTransitioning(true);
-    const loadedShowers = await loadMonthShowers(today, {
-      commitDate: true,
-      clearDataOnError: false,
-    });
-    setIsTransitioning(false);
-
-    onTodaySelected?.(today, loadedShowers ? getShowersForDate(loadedShowers, today) : []);
+    setGoToMonthOpen(false);
+    await navigateToMonth(new Date(year, selectedMonth, 1));
   };
 
   const handleDayClick = (date: Date) => {
@@ -195,134 +247,219 @@ export function Calendar({ onDayClick, onTodaySelected, refreshTrigger = 0 }: Ca
   }
 
   return (
-    <Card data-testid="calendar" aria-busy={isLoading}>
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div className="flex flex-col">
-            <CardTitle className="text-xl" data-testid="calendar-month">
-              {getMonthName(currentDate)}
-            </CardTitle>
-            <span className="text-xs font-medium text-muted-foreground/70 tracking-wider uppercase mt-0.5" aria-label="Year">
-              {getYear(currentDate)}
-            </span>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={goToToday}
-              className="text-xs"
-              disabled={isLoading}
+    <>
+      <Card data-testid="calendar" aria-busy={isMonthLoading}>
+        <CardHeader className="p-3 sm:p-6">
+          <div className="flex items-center justify-between">
+            <button
+              type="button"
+              onClick={openGoToMonth}
+              className="group flex rounded-md text-left transition-colors hover:text-primary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+              aria-label="Open month picker"
+              data-testid="calendar-month-trigger"
             >
-              Today
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={goToPreviousMonth}
-              disabled={isLoading}
-              aria-label="Previous month"
-              data-testid="prev-month"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={goToNextMonth}
-              disabled={isLoading}
-              aria-label="Next month"
-              data-testid="next-month"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div
-          className={cn(
-            'space-y-4 motion-safe:transition-opacity motion-safe:duration-200 motion-safe:ease-in-out motion-reduce:transition-none',
-            isTransitioning ? 'opacity-60' : 'opacity-100'
-          )}
-        >
-          <div className="grid grid-cols-7 gap-1">
-            {dayNames.map((dayName) => (
-              <div
-                key={dayName}
-                className="p-2 text-center text-sm font-medium text-muted-foreground"
-              >
-                {dayName}
-              </div>
-            ))}
-          </div>
-
-          <div className="grid grid-cols-7 gap-1">
-            {calendarGrid.map((date, index) => (
-              <div
-                key={date ? date.toISOString() : `empty-${index}`}
-                className={cn(
-                  'relative aspect-square p-1',
-                  date && 'cursor-pointer'
-                )}
-              >
-                {date && (
-                  <button
-                    onClick={() => handleDayClick(date)}
-                    data-date={date.toISOString().split('T')[0]}
-                    disabled={isLoading}
+              <div className="flex items-start gap-1.5">
+                <ChevronDown
+                  className="mt-1.5 h-4 w-4 text-muted-foreground transition-colors group-hover:text-primary"
+                  aria-hidden="true"
+                />
+                <div className="relative h-11 w-24 overflow-hidden sm:h-12 sm:w-32">
+                  {monthTransition && (
+                    <div
+                      className={cn(
+                        'absolute inset-0 flex flex-col',
+                        monthTransition.direction === 'forward'
+                          ? 'calendar-month-exit-forward'
+                          : 'calendar-month-exit-backward'
+                      )}
+                      aria-hidden="true"
+                    >
+                      {renderMonthHeader(monthTransition.previousDate, false)}
+                    </div>
+                  )}
+                  <div
+                    key={`${currentDate.getFullYear()}-${currentDate.getMonth()}`}
                     className={cn(
-                      'w-full h-full rounded-md border-2 border-transparent',
-                      'flex flex-col items-center justify-center',
-                      'text-sm transition-colors',
-                      'hover:bg-accent hover:text-accent-foreground',
-                      'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
-                      isToday(date) && 'border-primary bg-primary/10',
-                      hasShowers(date) && 'bg-blue-100 dark:bg-blue-900/30 has-shower',
-                      hasShowers(date) && isToday(date) && 'bg-primary/20'
+                      monthTransition ? 'absolute inset-0 flex flex-col' : 'flex flex-col',
+                      monthTransition?.direction === 'forward' && 'calendar-month-enter-forward',
+                      monthTransition?.direction === 'backward' && 'calendar-month-enter-backward'
                     )}
-                    title={
-                      hasShowers(date)
-                        ? `${formatDate(date)} - ${getShowerCount(date)} shower${getShowerCount(date) > 1 ? 's' : ''}`
-                        : formatDate(date)
-                    }
+                    onAnimationEnd={() => setMonthTransition(null)}
                   >
-                    <span className="font-medium">{date.getDate()}</span>
-                    {hasShowers(date) && (
-                      <div className="flex gap-0.5 mt-0.5">
-                        {Array.from({ length: Math.min(getShowerCount(date), 3) }).map((_, i) => (
-                          <div
-                            key={i}
-                            className="w-1.5 h-1.5 rounded-full bg-blue-500"
-                          />
-                        ))}
-                        {getShowerCount(date) > 3 && (
-                          <span className="text-xs text-blue-600 dark:text-blue-400 font-bold">
-                            +
-                          </span>
-                        )}
-                      </div>
-                    )}
-                  </button>
-                )}
+                    {renderMonthHeader(currentDate)}
+                  </div>
+                </div>
               </div>
-            ))}
+            </button>
+            <div className="flex items-center gap-1 sm:gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToToday}
+                className="px-2 text-xs sm:px-3"
+              >
+                Today
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToPreviousMonth}
+                aria-label="Previous month"
+                className="px-2 sm:px-3"
+                data-testid="prev-month"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={goToNextMonth}
+                aria-label="Next month"
+                className="px-2 sm:px-3"
+                data-testid="next-month"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
+        </CardHeader>
+        <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
+          <div
+            className="space-y-4"
+          >
+            <div className="grid grid-cols-7 gap-1">
+              {dayNames.map((dayName) => (
+                <div
+                  key={dayName}
+                  className="p-2 text-center text-sm font-medium text-muted-foreground"
+                >
+                  {dayName}
+                </div>
+              ))}
+            </div>
 
-          <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground pt-4 border-t">
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded border-2 border-primary bg-primary/10" />
-              <span>Today</span>
+            <div className="grid h-[clamp(18rem,72vw,24rem)] grid-cols-7 grid-rows-6 gap-1 sm:h-[26rem]">
+              {calendarGrid.map((date, index) => (
+                <div
+                  key={date ? date.toISOString() : `empty-${index}`}
+                  className={cn(
+                    'relative min-h-0 p-1',
+                    date && 'cursor-pointer'
+                  )}
+                >
+                  {date && (
+                    <button
+                      onClick={() => handleDayClick(date)}
+                      data-date={date.toISOString().split('T')[0]}
+                      className={cn(
+                        'w-full h-full rounded-md border-2 border-transparent',
+                        'flex flex-col items-center justify-center',
+                        'text-sm transition-colors',
+                        'hover:bg-accent hover:text-accent-foreground',
+                        'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+                        isToday(date) && 'border-primary bg-primary/10',
+                        hasShowers(date) && 'bg-blue-100 dark:bg-blue-900/30 has-shower',
+                        hasShowers(date) && isToday(date) && 'bg-primary/20'
+                      )}
+                      title={
+                        hasShowers(date)
+                          ? `${formatDate(date)} - ${getShowerCount(date)} shower${getShowerCount(date) > 1 ? 's' : ''}`
+                          : formatDate(date)
+                      }
+                    >
+                      <span className="font-medium">{date.getDate()}</span>
+                      {hasShowers(date) && (
+                        <div className="flex gap-0.5 mt-0.5">
+                          {Array.from({ length: Math.min(getShowerCount(date), 3) }).map((_, i) => (
+                            <div
+                              key={i}
+                              data-testid="shower-dot"
+                              className="w-1.5 h-1.5 rounded-full bg-blue-500"
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </button>
+                  )}
+                </div>
+              ))}
             </div>
-            <div className="flex items-center gap-2">
-              <div className="w-3 h-3 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+
+            <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground pt-4 border-t">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded border-2 border-primary bg-primary/10" />
+                <span>Today</span>
               </div>
-              <span>Has showers</span>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-3 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+                </div>
+                <span>Has showers</span>
+              </div>
             </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+
+      <Dialog open={goToMonthOpen} onOpenChange={setGoToMonthOpen}>
+        <DialogContent
+          className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-sm overflow-y-auto p-4 sm:max-w-md sm:p-6"
+          data-testid="go-to-month-dialog"
+        >
+          <DialogHeader>
+            <DialogTitle>Go to month</DialogTitle>
+            <DialogDescription>
+              Pick the month and year to show in the calendar.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label>Month</Label>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {monthOptions.map((month) => (
+                  <Button
+                    key={month.value}
+                    type="button"
+                    variant={selectedMonth === month.value ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setSelectedMonth(month.value)}
+                    className="h-9 px-2"
+                    data-testid={`month-option-${month.value}`}
+                  >
+                    {month.label}
+                  </Button>
+                ))}
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="go-to-year">Year</Label>
+              <Input
+                id="go-to-year"
+                type="number"
+                min={1900}
+                max={2100}
+                value={selectedYear}
+                onChange={(event) => setSelectedYear(event.target.value)}
+                data-testid="go-to-year-input"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setGoToMonthOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => void handleGoToMonth()}
+              data-testid="go-to-month-submit"
+            >
+              Show month
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }

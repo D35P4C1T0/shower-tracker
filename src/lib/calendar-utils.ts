@@ -13,7 +13,7 @@ export function getFirstDayOfMonth(date: Date): Date {
  * Get the last day of the month
  */
 export function getLastDayOfMonth(date: Date): Date {
-  return new Date(date.getFullYear(), date.getMonth() + 1, 0);
+  return new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
 }
 
 /**

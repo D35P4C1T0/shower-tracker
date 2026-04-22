@@ -85,6 +85,14 @@ describe('FallbackShowerService', () => {
     expect(localStorageMock.setItem).toHaveBeenCalled();
   });
 
+  it('rejects shower entries in the future', async () => {
+    const futureDate = new Date(Date.now() + 60 * 60 * 1000);
+
+    await expect(FallbackShowerService.addShower(futureDate)).rejects.toThrow(
+      'Cannot record a shower in the future'
+    );
+  });
+
   it('gets all showers', async () => {
     await FallbackShowerService.addShower(new Date('2023-01-01T10:00:00Z'));
     await FallbackShowerService.addShower(new Date('2023-01-02T10:00:00Z'));
@@ -140,6 +148,15 @@ describe('FallbackShowerService', () => {
     
     const showers = await FallbackShowerService.getAllShowers();
     expect(showers[0].notes).toBe(newNotes);
+  });
+
+  it('rejects updating a shower into the future', async () => {
+    const shower = await FallbackShowerService.addShower(new Date());
+    const futureDate = new Date(Date.now() + 60 * 60 * 1000);
+
+    await expect(FallbackShowerService.updateShower(shower.id, { timestamp: futureDate })).rejects.toThrow(
+      'Cannot record a shower in the future'
+    );
   });
 
   it('clears all showers', async () => {

@@ -173,9 +173,11 @@ function ToastItem({ toast }: { toast: ToastWithAnimation }) {
   return (
     <Card
       className={cn(
+        'cursor-pointer',
         toast.isExiting ? 'app-toast-out-right' : 'app-toast-in-right',
         variants[toast.type]
       )}
+      onClick={() => removeToast(toast.id)}
       data-testid="toast"
     >
       <CardContent className="p-4">
@@ -191,7 +193,10 @@ function ToastItem({ toast }: { toast: ToastWithAnimation }) {
                 variant="ghost"
                 size="sm"
                 className="mt-2 h-auto p-0 text-current hover:text-current"
-                onClick={toast.action.onClick}
+                onClick={(event) => {
+                  event.stopPropagation();
+                  toast.action?.onClick();
+                }}
               >
                 {toast.action.label}
               </Button>
@@ -201,7 +206,10 @@ function ToastItem({ toast }: { toast: ToastWithAnimation }) {
             variant="ghost"
             size="sm"
             className="h-auto p-1 text-current hover:text-current"
-            onClick={() => removeToast(toast.id)}
+            onClick={(event) => {
+              event.stopPropagation();
+              removeToast(toast.id);
+            }}
             aria-label="Close notification"
           >
             <X className="h-4 w-4" />

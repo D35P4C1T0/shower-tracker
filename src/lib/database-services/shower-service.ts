@@ -1,6 +1,6 @@
 import { db } from '../database';
-import { VALIDATION_CONSTANTS } from '../constants';
 import { FallbackShowerService } from '../storage-fallback';
+import { validateShowerNotes, validateShowerTimestamp } from '../shower-validation';
 import type { ShowerEntry } from '../../types';
 import { getRequiredStorageType } from './storage-state';
 
@@ -14,17 +14,8 @@ function toShowerEntry(shower: { id?: number; timestamp: Date; notes?: string })
 
 export class ShowerService {
   static async addShower(timestamp: Date = new Date(), notes?: string): Promise<ShowerEntry> {
-    if (!(timestamp instanceof Date) || isNaN(timestamp.getTime())) {
-      throw new Error('Invalid timestamp provided');
-    }
-
-    if (timestamp < VALIDATION_CONSTANTS.MIN_DATE || timestamp > VALIDATION_CONSTANTS.MAX_DATE) {
-      throw new Error('Timestamp is outside valid date range');
-    }
-
-    if (notes !== undefined && notes.length > VALIDATION_CONSTANTS.MAX_NOTES_LENGTH) {
-      throw new Error(`Notes exceed maximum length of ${VALIDATION_CONSTANTS.MAX_NOTES_LENGTH} characters`);
-    }
+    validateShowerTimestamp(timestamp);
+    validateShowerNotes(notes);
 
     const storageType = getRequiredStorageType();
 
@@ -154,18 +145,10 @@ export class ShowerService {
     }
 
     if (updates.timestamp !== undefined) {
-      if (!(updates.timestamp instanceof Date) || isNaN(updates.timestamp.getTime())) {
-        throw new Error('Invalid timestamp provided');
-      }
-
-      if (updates.timestamp < VALIDATION_CONSTANTS.MIN_DATE || updates.timestamp > VALIDATION_CONSTANTS.MAX_DATE) {
-        throw new Error('Timestamp is outside valid date range');
-      }
+      validateShowerTimestamp(updates.timestamp);
     }
 
-    if (updates.notes !== undefined && updates.notes.length > VALIDATION_CONSTANTS.MAX_NOTES_LENGTH) {
-      throw new Error(`Notes exceed maximum length of ${VALIDATION_CONSTANTS.MAX_NOTES_LENGTH} characters`);
-    }
+    validateShowerNotes(updates.notes);
 
     const storageType = getRequiredStorageType();
 

@@ -3,13 +3,14 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { TimeSinceDisplay } from '@/components/time-since-display'
 import { NotificationBanner } from '@/components/notification-banner'
+import { ShowerFrequencyChart } from '@/components/shower-frequency-chart'
 import { CardSkeleton } from '@/components/loading-skeleton'
 import { useShowers } from '@/hooks/useShowers'
 import { useToast } from '@/components/toast'
-import { CheckCircle, Loader2 } from 'lucide-react'
+import { CheckCircle, Loader2, Plus } from 'lucide-react'
 
 export function HomePage() {
-  const { addShower, formatTimeSinceLastShower, getLastShower, isLoading, error } = useShowers()
+  const { showers, addShower, formatTimeSinceLastShower, getLastShower, isLoading, error } = useShowers()
   const { success, error: showError } = useToast()
   const [isRecording, setIsRecording] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -38,7 +39,7 @@ export function HomePage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 app-fade-in">
+      <div className="space-y-6 pb-32 app-fade-in">
         <CardSkeleton />
         <CardSkeleton />
       </div>
@@ -46,49 +47,18 @@ export function HomePage() {
   }
 
   return (
-    <div className="space-y-6 app-fade-in">
+    <div className="space-y-6 pb-32 app-fade-in">
       <NotificationBanner />
-      
+
+      {error && (
+        <p className="text-center text-sm text-destructive">
+          {error}
+        </p>
+      )}
+
       <Card className="app-fade-up app-fade-up-delay-1">
         <CardHeader>
-          <CardTitle>Welcome Back!</CardTitle>
-          <CardDescription>
-            Track your shower habits with ease
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button 
-            className="w-full" 
-            size="lg"
-            onClick={handleRecordShower}
-            disabled={isRecording}
-          >
-            {isRecording ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Recording...
-              </>
-            ) : showSuccess ? (
-              <>
-                <CheckCircle className="mr-2 h-4 w-4" />
-                Recorded!
-              </>
-            ) : (
-              'Record it'
-            )}
-          </Button>
-          
-          {error && (
-            <p className="text-sm text-destructive mt-2 text-center">
-              {error}
-            </p>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card className="app-fade-up app-fade-up-delay-2">
-        <CardHeader>
-          <CardTitle>Time Since Last Shower</CardTitle>
+          <CardTitle>You Last Showered</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center">
@@ -99,20 +69,48 @@ export function HomePage() {
                   isLoading={false}
                 />
                 <p className="text-sm text-muted-foreground mt-1" data-testid="last-shower-time">
-                  Last shower: {new Date(lastShower!.timestamp).toLocaleString()}
+                  Logged on {new Date(lastShower!.timestamp).toLocaleString()}
                 </p>
               </>
             ) : (
               <>
                 <div className="text-3xl font-bold text-muted-foreground">--</div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  No showers recorded yet
+                  No shower logged yet
                 </p>
               </>
             )}
           </div>
         </CardContent>
       </Card>
+
+      <Card className="app-fade-up app-fade-up-delay-2">
+        <CardHeader>
+          <CardTitle>Shower Rhythm</CardTitle>
+          <CardDescription>
+            Last 30 days
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ShowerFrequencyChart showers={showers} />
+        </CardContent>
+      </Card>
+
+      <Button
+        className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-[max(1rem,calc((100vw-28rem)/2+1rem))] z-40 h-14 w-14 rounded-lg shadow-lg"
+        size="icon"
+        onClick={handleRecordShower}
+        disabled={isRecording}
+        aria-label="Record shower"
+      >
+        {isRecording ? (
+          <Loader2 className="h-6 w-6 animate-spin" />
+        ) : showSuccess ? (
+          <CheckCircle className="h-6 w-6" />
+        ) : (
+          <Plus className="h-6 w-6" />
+        )}
+      </Button>
     </div>
   )
 }

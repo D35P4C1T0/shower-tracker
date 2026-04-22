@@ -34,4 +34,21 @@ describe('Toast', () => {
     })
     expect(screen.queryByText('Saved')).not.toBeInTheDocument()
   })
+
+  it('dismisses a toast when clicking the notification body', () => {
+    vi.useFakeTimers()
+    render(
+      <ToastProvider>
+        <ToastProbe />
+      </ToastProvider>
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Trigger Toast' }))
+    fireEvent.click(screen.getByTestId('toast'))
+
+    act(() => {
+      vi.advanceTimersByTime(200)
+    })
+    expect(screen.queryByText('Saved')).not.toBeInTheDocument()
+  })
 })

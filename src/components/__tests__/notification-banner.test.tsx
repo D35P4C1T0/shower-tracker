@@ -29,6 +29,7 @@ describe('NotificationBanner', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Enable Notifications' }))
     expect(requestPermission).toHaveBeenCalledTimes(1)
+    expect(screen.getByTestId('notification-banner')).toBeInTheDocument()
   })
 
   it('can be dismissed when fallback message is shown', () => {
@@ -45,6 +46,21 @@ describe('NotificationBanner', () => {
 
     const buttons = screen.getAllByRole('button')
     fireEvent.click(buttons[buttons.length - 1])
+    expect(screen.queryByText('Reminder message')).not.toBeInTheDocument()
+  })
+
+  it('can be dismissed by clicking the banner body', () => {
+    useNotificationsMock.mockReturnValue({
+      getFallbackMessage: vi.fn().mockReturnValue('Reminder message'),
+      getPermissionStatus: vi.fn().mockReturnValue('default'),
+      requestPermission: vi.fn(),
+      isSupported: vi.fn().mockReturnValue(true),
+      isEnabled: true,
+    })
+
+    render(<NotificationBanner />)
+
+    fireEvent.click(screen.getByTestId('notification-banner'))
     expect(screen.queryByText('Reminder message')).not.toBeInTheDocument()
   })
 })

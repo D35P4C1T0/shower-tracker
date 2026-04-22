@@ -33,6 +33,10 @@ describe('calendar-utils', () => {
       expect(result.getDate()).toBe(31);
       expect(result.getMonth()).toBe(0);
       expect(result.getFullYear()).toBe(2024);
+      expect(result.getHours()).toBe(23);
+      expect(result.getMinutes()).toBe(59);
+      expect(result.getSeconds()).toBe(59);
+      expect(result.getMilliseconds()).toBe(999);
     });
 
     it('should handle February in leap year', () => {
@@ -45,6 +49,12 @@ describe('calendar-utils', () => {
       const febDate = new Date(2023, 1, 15); // February 2023 (non-leap year)
       const result = getLastDayOfMonth(febDate);
       expect(result.getDate()).toBe(28);
+    });
+
+    it('should include the full final day for 30-day months', () => {
+      const aprilDate = new Date(2026, 3, 22);
+      const result = getLastDayOfMonth(aprilDate);
+      expect(result).toEqual(new Date(2026, 3, 30, 23, 59, 59, 999));
     });
   });
 
