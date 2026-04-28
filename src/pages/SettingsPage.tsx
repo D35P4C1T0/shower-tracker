@@ -11,7 +11,8 @@ import { useSettings } from '@/hooks/useSettings'
 import { useNotifications } from '@/hooks/useNotifications'
 import { useToast } from '@/components/toast'
 import { DEFAULT_SETTINGS } from '@/lib/database-services/default-settings'
-import { Github, User, Bell, BellOff, AlertCircle } from 'lucide-react'
+import { formatAppVersion } from '@/lib/app-version'
+import { Github, User, Bell, BellOff, AlertCircle, Tag } from 'lucide-react'
 
 export function SettingsPage() {
   const {
@@ -318,7 +319,7 @@ export function SettingsPage() {
             </a>
           </div>
           
-          <div className="flex items-center justify-between py-2">
+          <div className="flex items-center justify-between py-2 border-b border-border/50">
             <div className="flex items-center gap-2 text-sm">
               <User className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Creator</span>
@@ -331,6 +332,16 @@ export function SettingsPage() {
             >
               {authorHandle}
             </a>
+          </div>
+
+          <div className="flex items-center justify-between py-2">
+            <div className="flex items-center gap-2 text-sm">
+              <Tag className="h-4 w-4 text-muted-foreground" />
+              <span className="text-muted-foreground">Version</span>
+            </div>
+            <span className="text-sm font-mono text-muted-foreground text-right" data-testid="app-version">
+              {formatAppVersion()}
+            </span>
           </div>
         </CardContent>
       </Card>

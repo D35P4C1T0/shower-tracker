@@ -74,5 +74,6 @@ describe('SettingsPage', () => {
 
     expect(repoLink).toHaveAttribute('href', 'https://github.com/example-org/example-repo')
     expect(authorLink).toHaveAttribute('href', 'https://github.com/example-user')
+    expect(screen.getByTestId('app-version')).toHaveTextContent('0.0.0-test (test)')
   })
 })

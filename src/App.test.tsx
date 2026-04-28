@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import App from './App'
@@ -61,23 +61,26 @@ vi.mock('@/pages/SettingsPage', () => ({
 
 describe('App', () => {
   it('navigates between pages', () => {
-    vi.useFakeTimers()
     render(<App />)
 
     expect(screen.getByText('Home Page')).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole('button', { name: 'Go Calendar' }))
-    act(() => {
-      vi.advanceTimersByTime(200)
-    })
     expect(screen.getByText('Calendar Page')).toBeInTheDocument()
     expect(screen.getByTestId('current-page')).toHaveTextContent('calendar')
 
     fireEvent.click(screen.getByRole('button', { name: 'Go Settings' }))
-    act(() => {
-      vi.advanceTimersByTime(200)
-    })
     expect(screen.getByText('Settings Page')).toBeInTheDocument()
     expect(screen.getByTestId('current-page')).toHaveTextContent('settings')
+  })
+
+  it('keeps nav state and visible page in sync on the first tap', () => {
+    render(<App />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Go Calendar' }))
+
+    expect(screen.getByTestId('current-page')).toHaveTextContent('calendar')
+    expect(screen.getByText('Calendar Page')).toBeInTheDocument()
+    expect(screen.queryByText('Home Page')).not.toBeInTheDocument()
   })
 })

@@ -1,12 +1,21 @@
 /**
  * PWA Service - Handles service worker registration and PWA functionality
  */
+import { APP_BUILD_ID, APP_COMMIT, APP_VERSION } from './app-version';
 
 export interface PWAUpdateInfo {
   isUpdateAvailable: boolean;
   currentVersion?: string;
   latestVersion?: string;
+  currentBuildId?: string;
+  latestBuildId?: string;
   updateServiceWorker: () => Promise<void>;
+}
+
+interface AppVersionMetadata {
+  buildId?: string;
+  commit?: string;
+  version?: string;
 }
 
 export interface PWAInstallInfo {
@@ -32,8 +41,6 @@ interface BeforeInstallPromptEvent extends Event {
   prompt: () => Promise<void>;
   userChoice: Promise<BeforeInstallPromptChoice>;
 }
-
-const APP_VERSION = typeof __APP_VERSION__ === 'undefined' ? '0.0.0-test' : __APP_VERSION__;
 
 class PWAService {
   private updateCallback?: (info: PWAUpdateInfo) => void;
@@ -124,13 +131,15 @@ class PWAService {
   /**
    * Notify about available updates
    */
-  private notifyUpdate(registration?: ServiceWorkerRegistration, latestVersion?: string): void {
+  private notifyUpdate(registration?: ServiceWorkerRegistration, latestMetadata?: AppVersionMetadata): void {
     const updateInfo: PWAUpdateInfo = {
       isUpdateAvailable: true,
       currentVersion: APP_VERSION,
-      latestVersion,
+      latestVersion: latestMetadata?.version,
+      currentBuildId: APP_BUILD_ID,
+      latestBuildId: latestMetadata?.buildId,
       updateServiceWorker: async () => {
-        await this.applyUpdate(registration, latestVersion);
+        await this.applyUpdate(registration, latestMetadata?.buildId ?? latestMetadata?.version);
       }
     };
 
@@ -204,9 +213,11 @@ class PWAService {
         return false;
       }
 
-      const metadata = await response.json() as { version?: string };
-      if (metadata.version && metadata.version !== APP_VERSION) {
-        this.notifyUpdate(this.registration, metadata.version);
+      const metadata = await response.json() as AppVersionMetadata;
+      const latestBuildId = metadata.buildId ?? metadata.commit ?? metadata.version;
+      const currentBuildId = APP_BUILD_ID ?? APP_COMMIT ?? APP_VERSION;
+      if (latestBuildId && latestBuildId !== currentBuildId) {
+        this.notifyUpdate(this.registration, metadata);
         return true;
       }
     } catch (error) {

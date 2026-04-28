@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { useSwipeable } from 'react-swipeable'
 import { Layout } from '@/components/layout'
 import { HomePage } from '@/pages/HomePage'
@@ -12,45 +12,16 @@ import { useNotifications } from '@/hooks/useNotifications'
 import { cn } from '@/lib/utils'
 import { getPageForSwipe, type AppPage } from '@/lib/page-navigation'
 
-const PAGE_TRANSITION_MS = 180
 const SWIPE_THRESHOLD_PX = 56
 
 function App() {
   const [currentPage, setCurrentPage] = useState<AppPage>('home')
-  const [displayPage, setDisplayPage] = useState<AppPage>('home')
-  const [isPageVisible, setIsPageVisible] = useState(true)
-  const transitionTimerRef = useRef<number | null>(null)
   
   // Initialize notifications
   useNotifications({ enableScheduler: true })
 
-  useEffect(() => {
-    return () => {
-      if (transitionTimerRef.current !== null) {
-        window.clearTimeout(transitionTimerRef.current)
-      }
-    }
-  }, [])
-
   const handleNavigate = (nextPage: AppPage) => {
     setCurrentPage(nextPage)
-
-    if (transitionTimerRef.current !== null) {
-      window.clearTimeout(transitionTimerRef.current)
-      transitionTimerRef.current = null
-    }
-
-    if (nextPage === displayPage) {
-      setIsPageVisible(true)
-      return
-    }
-
-    setIsPageVisible(false)
-    transitionTimerRef.current = window.setTimeout(() => {
-      setDisplayPage(nextPage)
-      setIsPageVisible(true)
-      transitionTimerRef.current = null
-    }, PAGE_TRANSITION_MS)
   }
 
   const swipeHandlers = useSwipeable({
@@ -103,11 +74,11 @@ function App() {
           <div {...swipeHandlers} className="touch-pan-y">
             <div
               className={cn(
-                'motion-safe:transition-opacity motion-safe:duration-200 motion-safe:ease-out motion-reduce:transition-none',
-                isPageVisible ? 'opacity-100' : 'opacity-0'
+                'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-150 motion-reduce:animate-none'
               )}
+              key={currentPage}
             >
-              {renderCurrentPage(displayPage)}
+              {renderCurrentPage(currentPage)}
             </div>
           </div>
         </Layout>

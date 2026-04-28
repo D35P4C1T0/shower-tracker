@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { pwaService } from '../pwa-service';
 
 const CURRENT_APP_VERSION = '0.0.0-test';
+const CURRENT_BUILD_ID = '0.0.0-test-test';
 
 describe('PWAService', () => {
   let mockServiceWorkerRegister: any;
@@ -18,7 +19,11 @@ describe('PWAService', () => {
 
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
       ok: true,
-      json: vi.fn().mockResolvedValue({ version: CURRENT_APP_VERSION })
+      json: vi.fn().mockResolvedValue({
+        version: CURRENT_APP_VERSION,
+        commit: 'test',
+        buildId: CURRENT_BUILD_ID
+      })
     }));
 
     mockServiceWorkerUpdate = vi.fn().mockResolvedValue(undefined);
@@ -251,11 +256,15 @@ describe('PWAService', () => {
   });
 
   describe('checkForUpdates', () => {
-    it('should report when a newer version is available', async () => {
+    it('should report when a newer build is available', async () => {
       const updateCallback = vi.fn();
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
-        json: vi.fn().mockResolvedValue({ version: '99.0.0' })
+        json: vi.fn().mockResolvedValue({
+          version: CURRENT_APP_VERSION,
+          commit: 'new-commit',
+          buildId: `${CURRENT_APP_VERSION}-new-commit`
+        })
       } as unknown as Response);
 
       pwaService.onUpdateAvailable(updateCallback);
@@ -265,14 +274,20 @@ describe('PWAService', () => {
       expect(updateCallback).toHaveBeenCalledWith(expect.objectContaining({
         isUpdateAvailable: true,
         currentVersion: CURRENT_APP_VERSION,
-        latestVersion: '99.0.0'
+        latestVersion: CURRENT_APP_VERSION,
+        currentBuildId: CURRENT_BUILD_ID,
+        latestBuildId: `${CURRENT_APP_VERSION}-new-commit`
       }));
     });
 
-    it('should return false when current version matches deployed version', async () => {
+    it('should return false when current build matches deployed build', async () => {
       vi.mocked(fetch).mockResolvedValueOnce({
         ok: true,
-        json: vi.fn().mockResolvedValue({ version: CURRENT_APP_VERSION })
+        json: vi.fn().mockResolvedValue({
+          version: CURRENT_APP_VERSION,
+          commit: 'test',
+          buildId: CURRENT_BUILD_ID
+        })
       } as unknown as Response);
 
       await pwaService.registerServiceWorker();

@@ -283,11 +283,11 @@ export function ShowerDetails({ date, showers, onClose, onShowersChanged }: Show
               value={editTime}
               max={isSameDay(new Date(showerToEdit?.timestamp ?? draftShowerTimestamp ?? date), new Date()) ? formatTimeInput(new Date()) : undefined}
               onChange={(event) => setEditTime(event.target.value)}
-              className="h-12 text-base"
+              className="h-12 min-w-0 max-w-full text-base"
               data-testid="edit-shower-time-input"
             />
           </div>
-          <div className="grid grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)] gap-2">
+          <div className="grid min-w-0 grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)] gap-2">
             {showerToEdit ? (
               <Button
                 variant="ghost"

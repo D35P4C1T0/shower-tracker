@@ -3,9 +3,25 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
 import { readFileSync } from 'fs'
+import { execSync } from 'child_process'
 
 const packageJson = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8')) as { version: string }
 const appVersion = packageJson.version
+const appCommit = process.env.VERCEL_GIT_COMMIT_SHA
+  ?? process.env.GITHUB_SHA
+  ?? (() => {
+    try {
+      return execSync('git rev-parse --short HEAD', { stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
+    } catch {
+      return 'dev'
+    }
+  })()
+const appBuildId = `${appVersion}-${appCommit}`
+const appVersionMetadata = JSON.stringify({
+  version: appVersion,
+  commit: appCommit,
+  buildId: appBuildId
+})
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -17,7 +33,9 @@ export default defineConfig(({ mode }) => {
   return {
     base,
     define: {
-      __APP_VERSION__: JSON.stringify(appVersion)
+      __APP_VERSION__: JSON.stringify(appVersion),
+      __APP_COMMIT__: JSON.stringify(appCommit),
+      __APP_BUILD_ID__: JSON.stringify(appBuildId)
     },
     plugins: [
       react(),
@@ -27,14 +45,14 @@ export default defineConfig(({ mode }) => {
           server.middlewares.use('/version.json', (_request, response) => {
             response.setHeader('Content-Type', 'application/json')
             response.setHeader('Cache-Control', 'no-store')
-            response.end(JSON.stringify({ version: appVersion }))
+            response.end(appVersionMetadata)
           })
         },
         generateBundle() {
           this.emitFile({
             type: 'asset',
             fileName: 'version.json',
-            source: JSON.stringify({ version: appVersion })
+            source: appVersionMetadata
           })
         }
       },

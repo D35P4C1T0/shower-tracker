@@ -45,7 +45,7 @@ describe('ShowerDetails', () => {
 
     fireEvent.click(screen.getByTestId('add-shower-for-day'))
 
-    expect(screen.getByTestId('edit-shower-time-input')).toBeInTheDocument()
+    expect(screen.getByTestId('edit-shower-time-input')).toHaveClass('min-w-0', 'max-w-full')
     expect(addShower).not.toHaveBeenCalled()
     expect(onShowersChanged).not.toHaveBeenCalled()
   })
