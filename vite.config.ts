@@ -2,6 +2,10 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
+import { readFileSync } from 'fs'
+
+const packageJson = JSON.parse(readFileSync(new URL('./package.json', import.meta.url), 'utf-8')) as { version: string }
+const appVersion = packageJson.version
 
 // https://vite.dev/config/
 export default defineConfig(({ mode }) => {
@@ -12,8 +16,28 @@ export default defineConfig(({ mode }) => {
 
   return {
     base,
+    define: {
+      __APP_VERSION__: JSON.stringify(appVersion)
+    },
     plugins: [
       react(),
+      {
+        name: 'app-version-manifest',
+        configureServer(server) {
+          server.middlewares.use('/version.json', (_request, response) => {
+            response.setHeader('Content-Type', 'application/json')
+            response.setHeader('Cache-Control', 'no-store')
+            response.end(JSON.stringify({ version: appVersion }))
+          })
+        },
+        generateBundle() {
+          this.emitFile({
+            type: 'asset',
+            fileName: 'version.json',
+            source: JSON.stringify({ version: appVersion })
+          })
+        }
+      },
       VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg'],

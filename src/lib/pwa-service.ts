@@ -4,6 +4,8 @@
 
 export interface PWAUpdateInfo {
   isUpdateAvailable: boolean;
+  currentVersion?: string;
+  latestVersion?: string;
   updateServiceWorker: () => Promise<void>;
 }
 
@@ -31,10 +33,15 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<BeforeInstallPromptChoice>;
 }
 
+const APP_VERSION = typeof __APP_VERSION__ === 'undefined' ? '0.0.0-test' : __APP_VERSION__;
+
 class PWAService {
   private updateCallback?: (info: PWAUpdateInfo) => void;
   private networkCallback?: (status: NetworkStatus) => void;
   private installPrompt: BeforeInstallPromptEvent | null = null;
+  private pendingUpdateInfo?: PWAUpdateInfo;
+  private registration?: ServiceWorkerRegistration;
+  private isReloadingForUpdate = false;
 
   constructor() {
     this.setupNetworkListeners();
@@ -48,7 +55,10 @@ class PWAService {
     if ('serviceWorker' in navigator) {
       try {
         const swUrl = this.withBasePath('sw.js');
-        const registration = await navigator.serviceWorker.register(swUrl);
+        const registration = await navigator.serviceWorker.register(swUrl, {
+          updateViaCache: 'none'
+        });
+        this.registration = registration;
         
         // Handle service worker updates
         registration.addEventListener('updatefound', () => {
@@ -63,6 +73,7 @@ class PWAService {
           }
         });
 
+        await this.checkForUpdates();
         console.log('Service Worker registered successfully');
       } catch (error) {
         console.error('Service Worker registration failed:', error);
@@ -113,18 +124,20 @@ class PWAService {
   /**
    * Notify about available updates
    */
-  private notifyUpdate(registration: ServiceWorkerRegistration): void {
+  private notifyUpdate(registration?: ServiceWorkerRegistration, latestVersion?: string): void {
+    const updateInfo: PWAUpdateInfo = {
+      isUpdateAvailable: true,
+      currentVersion: APP_VERSION,
+      latestVersion,
+      updateServiceWorker: async () => {
+        await this.applyUpdate(registration, latestVersion);
+      }
+    };
+
+    this.pendingUpdateInfo = updateInfo;
+
     if (this.updateCallback) {
-      this.updateCallback({
-        isUpdateAvailable: true,
-        updateServiceWorker: async () => {
-          const newWorker = registration.waiting;
-          if (newWorker) {
-            newWorker.postMessage({ type: 'SKIP_WAITING' });
-            window.location.reload();
-          }
-        }
-      });
+      this.updateCallback(updateInfo);
     }
   }
 
@@ -166,6 +179,41 @@ class PWAService {
    */
   onUpdateAvailable(callback: (info: PWAUpdateInfo) => void): void {
     this.updateCallback = callback;
+    if (this.pendingUpdateInfo) {
+      callback(this.pendingUpdateInfo);
+    }
+  }
+
+  /**
+   * Check for updated app shell and service worker.
+   */
+  async checkForUpdates(): Promise<boolean> {
+    try {
+      if (this.registration) {
+        await this.registration.update();
+      }
+
+      const response = await fetch(this.withBasePath('version.json'), {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-cache'
+        }
+      });
+
+      if (!response.ok) {
+        return false;
+      }
+
+      const metadata = await response.json() as { version?: string };
+      if (metadata.version && metadata.version !== APP_VERSION) {
+        this.notifyUpdate(this.registration, metadata.version);
+        return true;
+      }
+    } catch (error) {
+      console.warn('Failed to check for app updates:', error);
+    }
+
+    return false;
   }
 
   /**
@@ -246,6 +294,26 @@ class PWAService {
       );
       console.log('All caches cleared');
     }
+  }
+
+  private async applyUpdate(registration?: ServiceWorkerRegistration, latestVersion?: string): Promise<void> {
+    if (this.isReloadingForUpdate) {
+      return;
+    }
+
+    this.isReloadingForUpdate = true;
+
+    const newWorker = registration?.waiting ?? this.registration?.waiting;
+    if (newWorker) {
+      newWorker.postMessage({ type: 'SKIP_WAITING' });
+    }
+
+    await this.clearCaches();
+    await this.registration?.update();
+
+    const url = new URL(window.location.href);
+    url.searchParams.set('app-version', latestVersion ?? Date.now().toString());
+    window.location.replace(url.toString());
   }
 
   private withBasePath(path: string): string {

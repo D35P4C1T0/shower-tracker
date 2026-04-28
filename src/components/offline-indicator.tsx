@@ -1,5 +1,8 @@
+import { useEffect, useRef } from 'react';
 import { usePWA } from '../hooks/usePWA';
 import { Button } from './ui/button';
+
+const PULL_TO_CHECK_THRESHOLD_PX = 80;
 
 /**
  * Component that shows offline status and PWA update notifications
@@ -9,8 +12,41 @@ export function OfflineIndicator() {
     isOnline, 
     isOfflineReady, 
     isUpdateAvailable, 
-    updateApp 
+    latestVersion,
+    updateApp,
+    checkForUpdates
   } = usePWA();
+  const touchStartYRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const handleTouchStart = (event: TouchEvent) => {
+      if (window.scrollY <= 0) {
+        touchStartYRef.current = event.touches[0]?.clientY ?? null;
+      }
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      const touchStartY = touchStartYRef.current;
+      touchStartYRef.current = null;
+
+      if (touchStartY === null || window.scrollY > 0) {
+        return;
+      }
+
+      const touchEndY = event.changedTouches[0]?.clientY;
+      if (touchEndY !== undefined && touchEndY - touchStartY >= PULL_TO_CHECK_THRESHOLD_PX) {
+        void checkForUpdates();
+      }
+    };
+
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [checkForUpdates]);
 
   if (isOnline && !isUpdateAvailable) {
     return null;
@@ -32,7 +68,7 @@ export function OfflineIndicator() {
       {isUpdateAvailable && (
         <div className="bg-blue-500 text-white px-4 py-2 text-center text-sm font-medium app-fade-in">
           <div className="flex items-center justify-center gap-4">
-            <span>A new version is available!</span>
+            <span>{latestVersion ? `Version ${latestVersion} is available!` : 'A new version is available!'}</span>
             <Button
               size="sm"
               variant="secondary"

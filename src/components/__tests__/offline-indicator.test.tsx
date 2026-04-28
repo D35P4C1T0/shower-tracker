@@ -21,14 +21,35 @@ describe('OfflineIndicator', () => {
       isOnline: false,
       isOfflineReady: true,
       isUpdateAvailable: true,
+      latestVersion: '1.3.2',
       updateApp,
+      checkForUpdates: vi.fn(),
     })
 
     render(<OfflineIndicator />)
 
     expect(screen.getByTestId('offline-indicator')).toHaveTextContent('Offline.')
+    expect(screen.getByText('Version 1.3.2 is available!')).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Update Now' }))
     expect(updateApp).toHaveBeenCalledTimes(1)
+  })
+
+  it('checks for updates when pulled down from the top', () => {
+    const checkForUpdates = vi.fn()
+    usePWAMock.mockReturnValue({
+      isOnline: true,
+      isOfflineReady: true,
+      isUpdateAvailable: false,
+      updateApp: vi.fn(),
+      checkForUpdates,
+    })
+
+    render(<OfflineIndicator />)
+
+    fireEvent.touchStart(window, { touches: [{ clientY: 20 }] })
+    fireEvent.touchEnd(window, { changedTouches: [{ clientY: 120 }] })
+
+    expect(checkForUpdates).toHaveBeenCalledTimes(1)
   })
 
   it('returns null when online and no update is available', () => {
@@ -37,6 +58,7 @@ describe('OfflineIndicator', () => {
       isOfflineReady: true,
       isUpdateAvailable: false,
       updateApp: vi.fn(),
+      checkForUpdates: vi.fn(),
     })
 
     const { container } = render(<OfflineIndicator />)

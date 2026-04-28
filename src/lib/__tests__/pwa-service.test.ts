@@ -1,6 +1,8 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { pwaService } from '../pwa-service';
 
+const CURRENT_APP_VERSION = '0.0.0-test';
+
 describe('PWAService', () => {
   let mockServiceWorkerRegister: any;
   let mockNotificationRequestPermission: any;
@@ -8,17 +10,26 @@ describe('PWAService', () => {
   let mockCachesKeys: any;
   let mockCachesDelete: any;
   let mockCacheAddAll: any;
+  let mockServiceWorkerUpdate: any;
 
   beforeEach(() => {
     // Reset all mocks
     vi.clearAllMocks();
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({
+      ok: true,
+      json: vi.fn().mockResolvedValue({ version: CURRENT_APP_VERSION })
+    }));
+
+    mockServiceWorkerUpdate = vi.fn().mockResolvedValue(undefined);
 
     // Setup service worker mocks
     mockServiceWorkerRegister = vi.fn().mockResolvedValue({
       addEventListener: vi.fn(),
       installing: null,
       waiting: null,
-      active: null
+      active: null,
+      update: mockServiceWorkerUpdate
     });
 
     Object.defineProperty(window.navigator, 'serviceWorker', {
@@ -80,7 +91,7 @@ describe('PWAService', () => {
       
       await pwaService.registerServiceWorker();
 
-      expect(mockServiceWorkerRegister).toHaveBeenCalledWith('/sw.js');
+      expect(mockServiceWorkerRegister).toHaveBeenCalledWith('/sw.js', { updateViaCache: 'none' });
       expect(consoleSpy).toHaveBeenCalledWith('Service Worker registered successfully');
     });
 
@@ -236,6 +247,39 @@ describe('PWAService', () => {
       expect(mockCachesDelete).toHaveBeenCalledTimes(2);
       expect(mockCachesDelete).toHaveBeenCalledWith('cache1');
       expect(mockCachesDelete).toHaveBeenCalledWith('cache2');
+    });
+  });
+
+  describe('checkForUpdates', () => {
+    it('should report when a newer version is available', async () => {
+      const updateCallback = vi.fn();
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ version: '99.0.0' })
+      } as unknown as Response);
+
+      pwaService.onUpdateAvailable(updateCallback);
+      const hasUpdate = await pwaService.checkForUpdates();
+
+      expect(hasUpdate).toBe(true);
+      expect(updateCallback).toHaveBeenCalledWith(expect.objectContaining({
+        isUpdateAvailable: true,
+        currentVersion: CURRENT_APP_VERSION,
+        latestVersion: '99.0.0'
+      }));
+    });
+
+    it('should return false when current version matches deployed version', async () => {
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ version: CURRENT_APP_VERSION })
+      } as unknown as Response);
+
+      await pwaService.registerServiceWorker();
+      const hasUpdate = await pwaService.checkForUpdates();
+
+      expect(hasUpdate).toBe(false);
+      expect(mockServiceWorkerUpdate).toHaveBeenCalled();
     });
   });
 

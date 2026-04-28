@@ -13,6 +13,7 @@ const { pwaServiceMock } = vi.hoisted(() => ({
     requestNotificationPermission: vi.fn(),
     showNotification: vi.fn(),
     clearCaches: vi.fn(),
+    checkForUpdates: vi.fn(),
     supportsNotifications: vi.fn(),
   },
 }))
@@ -29,6 +30,7 @@ describe('usePWA', () => {
     pwaServiceMock.onNetworkStatusChange.mockReset()
     pwaServiceMock.getInstallInfo.mockReset()
     pwaServiceMock.getNetworkStatus.mockReset()
+    pwaServiceMock.checkForUpdates.mockReset()
     pwaServiceMock.supportsNotifications.mockReset()
 
     pwaServiceMock.getInstallInfo.mockReturnValue({
@@ -41,6 +43,7 @@ describe('usePWA', () => {
       isOfflineReady: false,
     })
     pwaServiceMock.supportsNotifications.mockReturnValue(true)
+    pwaServiceMock.checkForUpdates.mockResolvedValue(false)
   })
 
   it('initializes pwa service and exposes state', () => {

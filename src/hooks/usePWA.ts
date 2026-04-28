@@ -1,12 +1,16 @@
-import { useState, useEffect } from 'react';
+import { useCallback, useState, useEffect } from 'react';
 import { pwaService, type PWAUpdateInfo, type PWAInstallInfo, type NetworkStatus } from '../lib/pwa-service';
 
 /**
  * Hook for PWA functionality including updates, installation, and network status
  */
+const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
+
 export function usePWA() {
   const [updateInfo, setUpdateInfo] = useState<PWAUpdateInfo>({
     isUpdateAvailable: false,
+    currentVersion: undefined,
+    latestVersion: undefined,
     updateServiceWorker: async () => {}
   });
   
@@ -40,9 +44,26 @@ export function usePWA() {
     const installCheckInterval = setInterval(() => {
       setInstallInfo(pwaService.getInstallInfo());
     }, 5000);
+    const updateCheckInterval = setInterval(() => {
+      void pwaService.checkForUpdates();
+    }, UPDATE_CHECK_INTERVAL_MS);
+    const checkOnFocus = () => {
+      void pwaService.checkForUpdates();
+    };
+    const checkOnVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        void pwaService.checkForUpdates();
+      }
+    };
+
+    window.addEventListener('focus', checkOnFocus);
+    document.addEventListener('visibilitychange', checkOnVisibilityChange);
 
     return () => {
       clearInterval(installCheckInterval);
+      clearInterval(updateCheckInterval);
+      window.removeEventListener('focus', checkOnFocus);
+      document.removeEventListener('visibilitychange', checkOnVisibilityChange);
     };
   }, []);
 
@@ -58,10 +79,17 @@ export function usePWA() {
     await pwaService.clearCaches();
   };
 
+  const checkForUpdates = useCallback(async (): Promise<boolean> => {
+    return await pwaService.checkForUpdates();
+  }, []);
+
   return {
     // Update functionality
     isUpdateAvailable: updateInfo.isUpdateAvailable,
+    currentVersion: updateInfo.currentVersion,
+    latestVersion: updateInfo.latestVersion,
     updateApp: updateInfo.updateServiceWorker,
+    checkForUpdates,
     
     // Installation functionality
     isInstallable: installInfo.isInstallable,
