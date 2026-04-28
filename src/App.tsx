@@ -70,6 +70,7 @@ function App() {
         <Layout 
           currentPage={currentPage} 
           onNavigate={handleNavigate}
+          showThemeSwitcher={currentPage !== 'settings'}
         >
           <div {...swipeHandlers} className="touch-pan-y">
             <div

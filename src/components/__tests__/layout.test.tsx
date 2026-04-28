@@ -21,6 +21,8 @@ describe('Layout', () => {
     expect(screen.getByText('My App')).toBeInTheDocument()
     expect(screen.getByText('Body')).toBeInTheDocument()
     expect(screen.getByTestId('bottom-navigation')).toBeInTheDocument()
+    expect(screen.getByTestId('bottom-navigation-spacer')).toHaveClass('h-[calc(7rem+env(safe-area-inset-bottom))]')
+    expect(screen.getByTestId('theme-switcher')).toBeInTheDocument()
   })
 
   it('hides navigation when requested', () => {
@@ -31,5 +33,16 @@ describe('Layout', () => {
     )
 
     expect(screen.queryByTestId('bottom-navigation')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('bottom-navigation-spacer')).not.toBeInTheDocument()
+  })
+
+  it('hides the header theme switcher when requested', () => {
+    render(
+      <Layout showThemeSwitcher={false}>
+        <div>Body</div>
+      </Layout>
+    )
+
+    expect(screen.queryByTestId('theme-switcher')).not.toBeInTheDocument()
   })
 })

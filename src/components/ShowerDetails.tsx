@@ -265,7 +265,7 @@ export function ShowerDetails({ date, showers, onClose, onShowersChanged }: Show
 
       <Dialog open={!!showerToEdit || !!draftShowerTimestamp} onOpenChange={(open) => !open && handleCancelEditTime()}>
         <DialogContent
-          className="w-[calc(100vw-2rem)] max-w-xs gap-3 p-4 sm:max-w-sm"
+          className="w-[calc(100vw-0.75rem)] max-w-sm gap-3 p-4"
           data-testid="edit-time-dialog"
         >
           <DialogHeader className="space-y-0 text-left">
@@ -283,7 +283,7 @@ export function ShowerDetails({ date, showers, onClose, onShowersChanged }: Show
               value={editTime}
               max={isSameDay(new Date(showerToEdit?.timestamp ?? draftShowerTimestamp ?? date), new Date()) ? formatTimeInput(new Date()) : undefined}
               onChange={(event) => setEditTime(event.target.value)}
-              className="h-12 min-w-0 max-w-full text-base"
+              className="h-12 min-w-0 max-w-full text-base [appearance:textfield]"
               data-testid="edit-shower-time-input"
             />
           </div>

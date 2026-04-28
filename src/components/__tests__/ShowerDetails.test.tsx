@@ -46,6 +46,7 @@ describe('ShowerDetails', () => {
     fireEvent.click(screen.getByTestId('add-shower-for-day'))
 
     expect(screen.getByTestId('edit-shower-time-input')).toHaveClass('min-w-0', 'max-w-full')
+    expect(screen.getByTestId('edit-time-dialog')).toHaveClass('w-[calc(100vw-0.75rem)]', 'max-w-sm')
     expect(addShower).not.toHaveBeenCalled()
     expect(onShowersChanged).not.toHaveBeenCalled()
   })

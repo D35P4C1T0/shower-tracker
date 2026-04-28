@@ -8,6 +8,7 @@ interface LayoutProps {
   currentPage?: 'home' | 'calendar' | 'settings'
   onNavigate?: (page: 'home' | 'calendar' | 'settings') => void
   showNavigation?: boolean
+  showThemeSwitcher?: boolean
   title?: string
 }
 
@@ -16,6 +17,7 @@ export function Layout({
   currentPage = 'home', 
   onNavigate = () => {}, 
   showNavigation = true,
+  showThemeSwitcher = true,
   title = "Shower Tracker"
 }: LayoutProps) {
   return (
@@ -26,7 +28,7 @@ export function Layout({
           <div className="flex items-center space-x-2">
             <h1 className="text-lg font-semibold">{title}</h1>
           </div>
-          <ThemeSwitcher />
+          {showThemeSwitcher && <ThemeSwitcher />}
         </div>
       </header>
 
@@ -34,10 +36,16 @@ export function Layout({
       <main 
         className={cn(
           "container mx-auto max-w-md px-4 py-6 app-fade-in",
-          showNavigation && "pb-20" // Add bottom padding when navigation is shown
         )}
       >
         {children}
+        {showNavigation && (
+          <div
+            aria-hidden="true"
+            className="h-[calc(7rem+env(safe-area-inset-bottom))]"
+            data-testid="bottom-navigation-spacer"
+          />
+        )}
       </main>
 
       {/* Bottom Navigation */}

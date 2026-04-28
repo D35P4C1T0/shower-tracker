@@ -41,7 +41,7 @@ export function HomePage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 pb-32 app-fade-in">
+      <div className="space-y-6 app-fade-in">
         <CardSkeleton />
         <CardSkeleton />
       </div>
@@ -49,7 +49,7 @@ export function HomePage() {
   }
 
   return (
-    <div className="space-y-6 pb-32 app-fade-in">
+    <div className="space-y-6 app-fade-in">
       <NotificationBanner />
 
       {error && (

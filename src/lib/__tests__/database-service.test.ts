@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { ShowerService, SettingsService, MetadataService, DatabaseService } from '../database-service';
 import { db } from '../database';
 import type { UserSettings } from '../../types';
+import { DEFAULT_SETTINGS } from '../database-services/default-settings';
 
 // Mock console methods to avoid noise in tests
 vi.spyOn(console, 'log').mockImplementation(() => {});
@@ -389,14 +390,93 @@ describe('DatabaseService', () => {
       // Export data
       const exportedData = await DatabaseService.exportData();
 
+      expect(exportedData.schemaVersion).toBe(1);
+      expect(new Date(exportedData.exportedAt).toString()).not.toBe('Invalid Date');
       expect(exportedData.showers).toHaveLength(1);
       expect(exportedData.showers[0]).toMatchObject({
         timestamp: testDate,
         notes: 'Test shower'
       });
       
-      expect(exportedData.settings).toEqual(testSettings);
+      expect(exportedData.settings).toEqual({
+        theme: testSettings.theme,
+        firstDayOfWeek: testSettings.firstDayOfWeek,
+        notificationsEnabled: testSettings.notificationsEnabled,
+        notificationThresholdDays: testSettings.notificationThresholdDays,
+        showerGoals: testSettings.showerGoals
+      });
+      expect(exportedData.settings).not.toHaveProperty('projectInfo');
       expect(exportedData.metadata.testKey).toBe('testValue');
+    });
+
+    it('should import exported shower data and replace existing data', async () => {
+      await ShowerService.addShower(new Date('2024-01-01T10:00:00Z'), 'Old data');
+
+      const result = await DatabaseService.importData({
+        showers: [
+          { timestamp: '2024-02-01T08:00:00.000Z', notes: 'Morning' },
+          { timestamp: '2024-02-02T20:30:00.000Z' }
+        ],
+        settings: {
+          theme: 'dark',
+          firstDayOfWeek: 1,
+          notificationsEnabled: true,
+          notificationThresholdDays: 4,
+          showerGoals: {
+            weekly: 6,
+            monthly: 24
+          },
+          projectInfo: {
+            githubRepo: 'https://github.com/import/repo',
+            author: 'Import Author'
+          }
+        },
+        metadata: {
+          testKey: 'imported'
+        }
+      });
+
+      const showers = await ShowerService.getAllShowers();
+      const settings = await SettingsService.getSettings();
+      const metadata = await MetadataService.getAllMetadata();
+
+      expect(result).toEqual({ showersImported: 2, metadataImported: 1 });
+      expect(showers).toHaveLength(2);
+      expect(showers[0].timestamp).toEqual(new Date('2024-02-02T20:30:00.000Z'));
+      expect(showers[1]).toMatchObject({
+        timestamp: new Date('2024-02-01T08:00:00.000Z'),
+        notes: 'Morning'
+      });
+      expect(settings.theme).toBe('dark');
+      expect(settings.showerGoals).toEqual({ weekly: 6, monthly: 24 });
+      expect(settings.projectInfo).toEqual(DEFAULT_SETTINGS.projectInfo);
+      expect(metadata.testKey).toBe('imported');
+    });
+
+    it('should reject invalid imports before clearing existing data', async () => {
+      await ShowerService.addShower(new Date('2024-01-01T10:00:00Z'), 'Keep me');
+
+      await expect(DatabaseService.importData({
+        showers: [
+          { timestamp: new Date(Date.now() + 60 * 60 * 1000).toISOString() }
+        ],
+        metadata: {}
+      })).rejects.toThrow('Cannot record a shower in the future');
+
+      const showers = await ShowerService.getAllShowers();
+      expect(showers).toHaveLength(1);
+      expect(showers[0].notes).toBe('Keep me');
+    });
+
+    it('should import data from a JSON string', async () => {
+      await DatabaseService.importData(JSON.stringify({
+        showers: [{ timestamp: '2024-03-01T12:00:00.000Z' }],
+        metadata: {}
+      }));
+
+      const showers = await ShowerService.getAllShowers();
+      expect(showers).toHaveLength(1);
+      expect(showers[0].timestamp).toEqual(new Date('2024-03-01T12:00:00.000Z'));
     });
   });
 });
