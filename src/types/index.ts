@@ -9,6 +9,10 @@ export interface UserSettings {
   firstDayOfWeek: 0 | 1; // 0 = Sunday, 1 = Monday
   notificationsEnabled: boolean;
   notificationThresholdDays: number;
+  showerGoals: {
+    weekly: number;
+    monthly: number;
+  };
   projectInfo: {
     githubRepo: string;
     author: string;

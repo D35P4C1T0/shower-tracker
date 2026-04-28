@@ -1,10 +1,13 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import type { ShowerEntry } from '@/types';
 
 interface ShowerFrequencyChartProps {
+  firstDayOfWeek: 0 | 1;
+  onShowerGoalsChange: (goals: ShowerGoals) => void;
+  showerGoals: ShowerGoals;
   showers: ShowerEntry[];
 }
 
@@ -20,8 +23,11 @@ interface WeekBucket {
 
 const DEFAULT_WEEKLY_TARGET = 4;
 const DEFAULT_MONTHLY_TARGET = 16;
-const WEEKLY_TARGET_KEY = 'shower-tracker-weekly-target';
-const MONTHLY_TARGET_KEY = 'shower-tracker-monthly-target';
+
+interface ShowerGoals {
+  weekly: number;
+  monthly: number;
+}
 
 function getLocalDateKey(date: Date): string {
   const year = date.getFullYear();
@@ -77,10 +83,11 @@ export function getLast4WeekShowerBuckets(showers: ShowerEntry[], today = new Da
   });
 }
 
-function getStartOfWeek(date: Date): Date {
+function getStartOfWeek(date: Date, firstDayOfWeek: 0 | 1): Date {
   const start = new Date(date);
   start.setHours(0, 0, 0, 0);
-  start.setDate(start.getDate() - start.getDay());
+  const daysSinceWeekStart = (start.getDay() - firstDayOfWeek + 7) % 7;
+  start.setDate(start.getDate() - daysSinceWeekStart);
   return start;
 }
 
@@ -120,15 +127,6 @@ function getDaysSinceLastShower(showers: ShowerEntry[], today = new Date()): num
   startOfLastShowerDay.setHours(0, 0, 0, 0);
   const days = Math.floor((startOfToday.getTime() - startOfLastShowerDay.getTime()) / (24 * 60 * 60 * 1000));
   return Math.min(7, Math.max(0, days));
-}
-
-function readStoredTarget(key: string, fallback: number): number {
-  if (typeof window === 'undefined') {
-    return fallback;
-  }
-
-  const storedValue = Number(window.localStorage.getItem(key));
-  return Number.isFinite(storedValue) && storedValue > 0 ? storedValue : fallback;
 }
 
 interface ProgressRingProps {
@@ -252,26 +250,23 @@ function ProgressRing({ colorClass, label, max, onClick, progressValue, testId, 
   );
 }
 
-export function ShowerFrequencyChart({ showers }: ShowerFrequencyChartProps) {
-  const [weeklyTarget, setWeeklyTarget] = useState(() => readStoredTarget(WEEKLY_TARGET_KEY, DEFAULT_WEEKLY_TARGET));
-  const [monthlyTarget, setMonthlyTarget] = useState(() => readStoredTarget(MONTHLY_TARGET_KEY, DEFAULT_MONTHLY_TARGET));
+export function ShowerFrequencyChart({
+  firstDayOfWeek,
+  onShowerGoalsChange,
+  showerGoals,
+  showers
+}: ShowerFrequencyChartProps) {
   const [goalBeingEdited, setGoalBeingEdited] = useState<'weekly' | 'monthly' | null>(null);
   const [activeWeekBucketIndex, setActiveWeekBucketIndex] = useState<number | null>(null);
 
-  const now = useMemo(() => new Date(), []);
-  const trendBuckets = useMemo(() => getLast4WeekShowerBuckets(showers, now), [showers, now]);
+  const now = new Date();
+  const trendBuckets = getLast4WeekShowerBuckets(showers, now);
   const maxBucket = Math.max(1, ...trendBuckets.map((bucket) => bucket.count));
-  const currentWeekShowers = countShowersSince(showers, getStartOfWeek(now), now);
+  const currentWeekShowers = countShowersSince(showers, getStartOfWeek(now, firstDayOfWeek), now);
   const currentMonthShowers = countShowersSince(showers, getStartOfMonth(now), now);
   const daysSinceLastShower = getDaysSinceLastShower(showers, now);
-
-  useEffect(() => {
-    window.localStorage.setItem(WEEKLY_TARGET_KEY, `${weeklyTarget}`);
-  }, [weeklyTarget]);
-
-  useEffect(() => {
-    window.localStorage.setItem(MONTHLY_TARGET_KEY, `${monthlyTarget}`);
-  }, [monthlyTarget]);
+  const weeklyTarget = showerGoals.weekly || DEFAULT_WEEKLY_TARGET;
+  const monthlyTarget = showerGoals.monthly || DEFAULT_MONTHLY_TARGET;
 
   return (
     <div className="space-y-4" data-testid="shower-frequency-chart">
@@ -353,9 +348,9 @@ export function ShowerFrequencyChart({ showers }: ShowerFrequencyChartProps) {
         onOpenChange={(open) => setGoalBeingEdited(open ? goalBeingEdited ?? 'weekly' : null)}
         onSave={(value) => {
           if (goalBeingEdited === 'monthly') {
-            setMonthlyTarget(value);
+            onShowerGoalsChange({ ...showerGoals, monthly: value });
           } else {
-            setWeeklyTarget(value);
+            onShowerGoalsChange({ ...showerGoals, weekly: value });
           }
         }}
         open={goalBeingEdited !== null}

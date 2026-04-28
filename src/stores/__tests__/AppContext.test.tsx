@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { AppProvider, useAppContext } from '../AppContext'
 
@@ -30,11 +30,23 @@ vi.mock('../../lib/database-service', () => ({
 }))
 
 function ContextProbe() {
-  const { state } = useAppContext()
+  const { state, dispatch } = useAppContext()
   return (
     <div>
       <span data-testid="status">{state.isLoading ? 'loading' : 'ready'}</span>
-      <span data-testid="showers">{state.showers.length}</span>
+      <span data-testid="showers">{state.showers.map((shower) => shower.id).join(',')}</span>
+      <button
+        type="button"
+        onClick={() => dispatch({
+          type: 'UPDATE_SHOWER',
+          payload: {
+            id: '1',
+            updates: { timestamp: new Date('2026-01-01T00:00:00.000Z') },
+          },
+        })}
+      >
+        Move shower
+      </button>
     </div>
   )
 }
@@ -74,5 +86,26 @@ describe('AppContext', () => {
       expect(screen.getByTestId('status')).toHaveTextContent('ready')
       expect(screen.getByTestId('showers')).toHaveTextContent('1')
     })
+  })
+
+  it('keeps showers sorted after timestamp updates', async () => {
+    showerServiceMock.getAllShowers.mockResolvedValue([
+      { id: '2', timestamp: new Date('2025-06-01T00:00:00.000Z') },
+      { id: '1', timestamp: new Date('2025-01-01T00:00:00.000Z') },
+    ])
+
+    render(
+      <AppProvider>
+        <ContextProbe />
+      </AppProvider>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByTestId('showers')).toHaveTextContent('2,1')
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Move shower' }))
+
+    expect(screen.getByTestId('showers')).toHaveTextContent('1,2')
   })
 })

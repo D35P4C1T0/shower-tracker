@@ -14,6 +14,8 @@ export interface DBUserSettings {
   firstDayOfWeek: 0 | 1;
   notificationsEnabled: boolean;
   notificationThresholdDays: number;
+  weeklyShowerTarget?: number;
+  monthlyShowerTarget?: number;
   githubRepo: string;
   author: string;
 }

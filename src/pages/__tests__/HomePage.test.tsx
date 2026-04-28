@@ -3,15 +3,21 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { HomePage } from '../HomePage'
 
 const {
+  useSettingsMock,
   useShowersMock,
   useToastMock,
 } = vi.hoisted(() => ({
+  useSettingsMock: vi.fn(),
   useShowersMock: vi.fn(),
   useToastMock: vi.fn(),
 }))
 
 vi.mock('@/hooks/useShowers', () => ({
   useShowers: useShowersMock,
+}))
+
+vi.mock('@/hooks/useSettings', () => ({
+  useSettings: useSettingsMock,
 }))
 
 vi.mock('@/components/toast', () => ({
@@ -32,8 +38,19 @@ vi.mock('@/components/shower-frequency-chart', () => ({
 
 describe('HomePage', () => {
   beforeEach(() => {
+    useSettingsMock.mockReset()
     useShowersMock.mockReset()
     useToastMock.mockReset()
+    useSettingsMock.mockReturnValue({
+      settings: {
+        firstDayOfWeek: 0,
+        showerGoals: {
+          weekly: 4,
+          monthly: 16,
+        },
+      },
+      updateShowerGoals: vi.fn(),
+    })
   })
 
   it('records a shower when pressing the main action', async () => {

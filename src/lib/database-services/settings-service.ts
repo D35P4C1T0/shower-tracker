@@ -1,8 +1,20 @@
 import { db, type DBUserSettings } from '../database';
 import { FallbackSettingsService } from '../storage-fallback';
 import type { UserSettings } from '../../types';
-import { DEFAULT_SETTINGS, normalizeProjectInfo } from './default-settings';
+import { DEFAULT_SETTINGS, normalizeProjectInfo, normalizeShowerGoals } from './default-settings';
 import { getRequiredStorageType } from './storage-state';
+
+const LEGACY_WEEKLY_TARGET_KEY = 'shower-tracker-weekly-target';
+const LEGACY_MONTHLY_TARGET_KEY = 'shower-tracker-monthly-target';
+
+function readLegacyGoalTarget(key: string): number | undefined {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  const value = Number(window.localStorage.getItem(key));
+  return Number.isFinite(value) && value > 0 ? value : undefined;
+}
 
 export class SettingsService {
   static async getSettings(): Promise<UserSettings> {
@@ -20,13 +32,24 @@ export class SettingsService {
       const settings = await db.settings.toCollection().first();
 
       if (!settings) {
-        await this.saveSettings(DEFAULT_SETTINGS);
-        return DEFAULT_SETTINGS;
+        const settingsWithLegacyGoals: UserSettings = {
+          ...DEFAULT_SETTINGS,
+          showerGoals: normalizeShowerGoals({
+            weekly: readLegacyGoalTarget(LEGACY_WEEKLY_TARGET_KEY),
+            monthly: readLegacyGoalTarget(LEGACY_MONTHLY_TARGET_KEY)
+          })
+        };
+        await this.saveSettings(settingsWithLegacyGoals);
+        return settingsWithLegacyGoals;
       }
 
       const projectInfo = normalizeProjectInfo({
         githubRepo: settings.githubRepo,
         author: settings.author
+      });
+      const showerGoals = normalizeShowerGoals({
+        weekly: settings.weeklyShowerTarget ?? readLegacyGoalTarget(LEGACY_WEEKLY_TARGET_KEY),
+        monthly: settings.monthlyShowerTarget ?? readLegacyGoalTarget(LEGACY_MONTHLY_TARGET_KEY)
       });
 
       const resolvedSettings: UserSettings = {
@@ -34,6 +57,7 @@ export class SettingsService {
         firstDayOfWeek: settings.firstDayOfWeek ?? DEFAULT_SETTINGS.firstDayOfWeek,
         notificationsEnabled: settings.notificationsEnabled ?? DEFAULT_SETTINGS.notificationsEnabled,
         notificationThresholdDays: settings.notificationThresholdDays ?? DEFAULT_SETTINGS.notificationThresholdDays,
+        showerGoals,
         projectInfo
       };
 
@@ -42,6 +66,8 @@ export class SettingsService {
         settings.firstDayOfWeek !== resolvedSettings.firstDayOfWeek ||
         settings.notificationsEnabled !== resolvedSettings.notificationsEnabled ||
         settings.notificationThresholdDays !== resolvedSettings.notificationThresholdDays ||
+        settings.weeklyShowerTarget !== resolvedSettings.showerGoals.weekly ||
+        settings.monthlyShowerTarget !== resolvedSettings.showerGoals.monthly ||
         settings.githubRepo !== resolvedSettings.projectInfo.githubRepo ||
         settings.author !== resolvedSettings.projectInfo.author;
 
@@ -73,6 +99,8 @@ export class SettingsService {
         firstDayOfWeek: settings.firstDayOfWeek,
         notificationsEnabled: settings.notificationsEnabled,
         notificationThresholdDays: settings.notificationThresholdDays,
+        weeklyShowerTarget: settings.showerGoals.weekly,
+        monthlyShowerTarget: settings.showerGoals.monthly,
         githubRepo: settings.projectInfo.githubRepo,
         author: settings.projectInfo.author
       };

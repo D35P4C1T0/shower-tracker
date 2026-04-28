@@ -195,6 +195,10 @@ describe('FallbackSettingsService', () => {
       firstDayOfWeek: 1,
       notificationsEnabled: true,
       notificationThresholdDays: 5,
+      showerGoals: {
+        weekly: 5,
+        monthly: 20
+      },
       projectInfo: {
         githubRepo: 'https://github.com/test/repo',
         author: 'Test Author'
@@ -220,6 +224,10 @@ describe('FallbackSettingsService', () => {
       firstDayOfWeek: 1,
       notificationsEnabled: true,
       notificationThresholdDays: 7,
+      showerGoals: {
+        weekly: 7,
+        monthly: 28
+      },
       projectInfo: {
         githubRepo: 'https://github.com/test/repo',
         author: 'Test Author'

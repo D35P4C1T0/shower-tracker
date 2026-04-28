@@ -32,6 +32,10 @@ describe('Type Definitions', () => {
         firstDayOfWeek: 1,
         notificationsEnabled: true,
         notificationThresholdDays: 5,
+        showerGoals: {
+          weekly: 5,
+          monthly: 20
+        },
         projectInfo: {
           githubRepo: 'https://github.com/test/repo',
           author: 'Test Author'
@@ -42,6 +46,8 @@ describe('Type Definitions', () => {
       expect(settings.firstDayOfWeek).toBe(1);
       expect(settings.notificationsEnabled).toBe(true);
       expect(settings.notificationThresholdDays).toBe(5);
+      expect(settings.showerGoals.weekly).toBe(5);
+      expect(settings.showerGoals.monthly).toBe(20);
       expect(settings.projectInfo.githubRepo).toBe('https://github.com/test/repo');
       expect(settings.projectInfo.author).toBe('Test Author');
     });
@@ -80,6 +86,10 @@ describe('Type Definitions', () => {
           firstDayOfWeek: 0,
           notificationsEnabled: false,
           notificationThresholdDays: 3,
+          showerGoals: {
+            weekly: 4,
+            monthly: 16
+          },
           projectInfo: {
             githubRepo: 'https://github.com/test/repo',
             author: 'Test Author'
@@ -101,6 +111,10 @@ describe('Type Definitions', () => {
           firstDayOfWeek: 0,
           notificationsEnabled: false,
           notificationThresholdDays: 3,
+          showerGoals: {
+            weekly: 4,
+            monthly: 16
+          },
           projectInfo: {
             githubRepo: 'https://github.com/test/repo',
             author: 'Test Author'

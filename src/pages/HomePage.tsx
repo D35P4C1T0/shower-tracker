@@ -6,11 +6,13 @@ import { NotificationBanner } from '@/components/notification-banner'
 import { ShowerFrequencyChart } from '@/components/shower-frequency-chart'
 import { CardSkeleton } from '@/components/loading-skeleton'
 import { useShowers } from '@/hooks/useShowers'
+import { useSettings } from '@/hooks/useSettings'
 import { useToast } from '@/components/toast'
 import { CheckCircle, Loader2, Plus } from 'lucide-react'
 
 export function HomePage() {
   const { showers, addShower, formatTimeSinceLastShower, getLastShower, isLoading, error } = useShowers()
+  const { settings, updateShowerGoals } = useSettings()
   const { success, error: showError } = useToast()
   const [isRecording, setIsRecording] = useState(false)
   const [showSuccess, setShowSuccess] = useState(false)
@@ -92,7 +94,12 @@ export function HomePage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ShowerFrequencyChart showers={showers} />
+          <ShowerFrequencyChart
+            firstDayOfWeek={settings.firstDayOfWeek}
+            onShowerGoalsChange={updateShowerGoals}
+            showerGoals={settings.showerGoals}
+            showers={showers}
+          />
         </CardContent>
       </Card>
 

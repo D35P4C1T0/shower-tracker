@@ -148,6 +148,10 @@ describe('DatabaseService', () => {
         firstDayOfWeek: 0,
         notificationsEnabled: false,
         notificationThresholdDays: 3,
+        showerGoals: {
+          weekly: 4,
+          monthly: 16
+        },
         projectInfo: {
           githubRepo: 'https://github.com/D35P4C1T0/shower-tracker',
           author: 'D35P4C1T0'
@@ -161,6 +165,10 @@ describe('DatabaseService', () => {
         firstDayOfWeek: 1,
         notificationsEnabled: true,
         notificationThresholdDays: 5,
+        showerGoals: {
+          weekly: 5,
+          monthly: 20
+        },
         projectInfo: {
           githubRepo: 'https://github.com/custom/repo',
           author: 'Custom Author'
@@ -180,6 +188,10 @@ describe('DatabaseService', () => {
         firstDayOfWeek: 0,
         notificationsEnabled: false,
         notificationThresholdDays: 3,
+        showerGoals: {
+          weekly: 4,
+          monthly: 16
+        },
         projectInfo: {
           githubRepo: 'https://github.com/test/repo',
           author: 'Test Author'
@@ -200,6 +212,10 @@ describe('DatabaseService', () => {
         firstDayOfWeek: 0,
         notificationsEnabled: false,
         notificationThresholdDays: 3,
+        showerGoals: {
+          weekly: 4,
+          monthly: 16
+        },
         projectInfo: {
           githubRepo: 'https://github.com/first/repo',
           author: 'First Author'
@@ -211,6 +227,10 @@ describe('DatabaseService', () => {
         firstDayOfWeek: 1,
         notificationsEnabled: true,
         notificationThresholdDays: 7,
+        showerGoals: {
+          weekly: 7,
+          monthly: 28
+        },
         projectInfo: {
           githubRepo: 'https://github.com/second/repo',
           author: 'Second Author'
@@ -317,6 +337,10 @@ describe('DatabaseService', () => {
         firstDayOfWeek: 1,
         notificationsEnabled: true,
         notificationThresholdDays: 5,
+        showerGoals: {
+          weekly: 5,
+          monthly: 20
+        },
         projectInfo: {
           githubRepo: 'test',
           author: 'test'
@@ -349,6 +373,10 @@ describe('DatabaseService', () => {
         firstDayOfWeek: 1,
         notificationsEnabled: true,
         notificationThresholdDays: 5,
+        showerGoals: {
+          weekly: 5,
+          monthly: 20
+        },
         projectInfo: {
           githubRepo: 'https://github.com/test/repo',
           author: 'Test Author'

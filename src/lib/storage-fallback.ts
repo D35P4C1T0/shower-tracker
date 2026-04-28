@@ -1,5 +1,5 @@
 import type { ShowerEntry, UserSettings } from '../types';
-import { DEFAULT_SETTINGS, normalizeProjectInfo } from './database-services/default-settings';
+import { DEFAULT_SETTINGS, normalizeProjectInfo, normalizeShowerGoals } from './database-services/default-settings';
 import { validateShowerNotes, validateShowerTimestamp } from './shower-validation';
 
 // Storage keys
@@ -8,6 +8,9 @@ const STORAGE_KEYS = {
   SETTINGS: 'shower-tracker-settings',
   METADATA: 'shower-tracker-metadata'
 } as const;
+
+const LEGACY_WEEKLY_TARGET_KEY = 'shower-tracker-weekly-target';
+const LEGACY_MONTHLY_TARGET_KEY = 'shower-tracker-monthly-target';
 
 // Check if localStorage is available
 function isLocalStorageAvailable(): boolean {
@@ -52,6 +55,11 @@ function safeRemoveItem(key: string): boolean {
     console.warn('Failed to remove from localStorage:', error);
     return false;
   }
+}
+
+function readLegacyGoalTarget(key: string): number | undefined {
+  const value = Number(safeGetItem(key));
+  return Number.isFinite(value) && value > 0 ? value : undefined;
 }
 
 // Fallback shower service
@@ -145,7 +153,15 @@ export class FallbackShowerService {
 export class FallbackSettingsService {
   static async getSettings(): Promise<UserSettings> {
     const data = safeGetItem(STORAGE_KEYS.SETTINGS);
-    if (!data) return DEFAULT_SETTINGS;
+    if (!data) {
+      return {
+        ...DEFAULT_SETTINGS,
+        showerGoals: normalizeShowerGoals({
+          weekly: readLegacyGoalTarget(LEGACY_WEEKLY_TARGET_KEY),
+          monthly: readLegacyGoalTarget(LEGACY_MONTHLY_TARGET_KEY)
+        })
+      };
+    }
     
     try {
       const settings = JSON.parse(data) as Partial<UserSettings> & {
@@ -163,6 +179,10 @@ export class FallbackSettingsService {
       return {
         ...DEFAULT_SETTINGS,
         ...settings,
+        showerGoals: normalizeShowerGoals(settings.showerGoals ?? {
+          weekly: readLegacyGoalTarget(LEGACY_WEEKLY_TARGET_KEY),
+          monthly: readLegacyGoalTarget(LEGACY_MONTHLY_TARGET_KEY)
+        }),
         projectInfo
       };
     } catch (error) {

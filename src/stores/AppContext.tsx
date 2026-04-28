@@ -62,11 +62,13 @@ function appReducer(state: ExtendedAppState, action: AppAction): ExtendedAppStat
     case 'UPDATE_SHOWER':
       return {
         ...state,
-        showers: state.showers.map(shower =>
-          shower.id === action.payload.id
-            ? { ...shower, ...action.payload.updates }
-            : shower
-        )
+        showers: state.showers
+          .map(shower =>
+            shower.id === action.payload.id
+              ? { ...shower, ...action.payload.updates }
+              : shower
+          )
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
       };
     
     case 'DELETE_SHOWER':

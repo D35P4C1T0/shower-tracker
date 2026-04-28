@@ -55,7 +55,9 @@ export function useSettings() {
     await updateSetting('notificationThresholdDays', days);
   }, [updateSetting]);
 
-
+  const updateShowerGoals = useCallback(async (showerGoals: UserSettings['showerGoals']) => {
+    await updateSetting('showerGoals', showerGoals);
+  }, [updateSetting]);
 
   // Notification check helpers
   const updateLastNotificationCheck = useCallback(async (date: Date) => {
@@ -135,7 +137,7 @@ export function useSettings() {
     updateFirstDayOfWeek,
     toggleNotifications,
     updateNotificationThreshold,
-
+    updateShowerGoals,
     updateLastNotificationCheck,
     shouldSendNotification,
     getEffectiveTheme,

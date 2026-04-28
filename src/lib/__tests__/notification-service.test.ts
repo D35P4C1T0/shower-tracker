@@ -246,6 +246,10 @@ describe('NotificationService', () => {
       firstDayOfWeek: 0,
       notificationsEnabled: true,
       notificationThresholdDays: 24,
+      showerGoals: {
+        weekly: 4,
+        monthly: 16
+      },
       projectInfo: {
         githubRepo: 'test/repo',
         author: 'Test Author'

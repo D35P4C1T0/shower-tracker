@@ -1,7 +1,21 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { createElement } from 'react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { ShowerFrequencyChart, getLast30DaysShowerFrequency } from '../shower-frequency-chart';
+
+const defaultProps = {
+  firstDayOfWeek: 0 as const,
+  onShowerGoalsChange: vi.fn(),
+  showerGoals: {
+    weekly: 4,
+    monthly: 16,
+  },
+};
+
+afterEach(() => {
+  vi.useRealTimers();
+  defaultProps.onShowerGoalsChange.mockReset();
+});
 
 describe('getLast30DaysShowerFrequency', () => {
   it('counts showers per local day for the last 30 days', () => {
@@ -22,7 +36,7 @@ describe('getLast30DaysShowerFrequency', () => {
 
 describe('ShowerFrequencyChart', () => {
   it('shows the week interval tooltip when a weekly column is clicked or hovered', () => {
-    render(createElement(ShowerFrequencyChart, { showers: [] }));
+    render(createElement(ShowerFrequencyChart, { ...defaultProps, showers: [] }));
 
     const firstBar = screen.getAllByTestId('shower-frequency-bar')[0];
 
@@ -37,14 +51,14 @@ describe('ShowerFrequencyChart', () => {
   });
 
   it('does not fill the days-since ring when no showers are recorded', () => {
-    render(createElement(ShowerFrequencyChart, { showers: [] }));
+    render(createElement(ShowerFrequencyChart, { ...defaultProps, showers: [] }));
 
     expect(screen.getByTestId('days-since-shower-ring')).toHaveAttribute('data-progress', '0');
     expect(screen.getByTestId('days-since-shower-ring')).toHaveTextContent('--/7');
   });
 
   it('opens a reusable goal editor when clicking goal rings', () => {
-    render(createElement(ShowerFrequencyChart, { showers: [] }));
+    render(createElement(ShowerFrequencyChart, { ...defaultProps, showers: [] }));
 
     fireEvent.click(screen.getByTestId('weekly-shower-ring'));
     expect(screen.getByTestId('goal-edit-dialog')).toBeInTheDocument();
@@ -55,6 +69,48 @@ describe('ShowerFrequencyChart', () => {
     });
     fireEvent.click(screen.getByTestId('goal-edit-save'));
 
+    expect(defaultProps.onShowerGoalsChange).toHaveBeenCalledWith({
+      weekly: 5,
+      monthly: 16,
+    });
     expect(screen.queryByTestId('goal-edit-dialog')).not.toBeInTheDocument();
+  });
+
+  it('updates goal rings when a newly recorded shower is newer than the initial render time', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-22T12:00:00.000Z'));
+
+    const { rerender } = render(createElement(ShowerFrequencyChart, { ...defaultProps, showers: [] }));
+
+    vi.setSystemTime(new Date('2026-04-22T12:01:00.000Z'));
+    rerender(createElement(ShowerFrequencyChart, {
+      ...defaultProps,
+      showers: [{ id: '1', timestamp: new Date('2026-04-22T12:01:00.000Z') }],
+    }));
+
+    expect(screen.getByTestId('weekly-shower-ring')).toHaveTextContent('1/4');
+    expect(screen.getByTestId('monthly-shower-ring')).toHaveTextContent('1/16');
+  });
+
+  it('uses the configured first day of week for the weekly ring', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-26T12:00:00.000Z'));
+
+    const showers = [{ id: '1', timestamp: new Date('2026-04-25T12:00:00.000Z') }];
+    const { rerender } = render(createElement(ShowerFrequencyChart, {
+      ...defaultProps,
+      firstDayOfWeek: 0,
+      showers,
+    }));
+
+    expect(screen.getByTestId('weekly-shower-ring')).toHaveTextContent('0/4');
+
+    rerender(createElement(ShowerFrequencyChart, {
+      ...defaultProps,
+      firstDayOfWeek: 1,
+      showers,
+    }));
+
+    expect(screen.getByTestId('weekly-shower-ring')).toHaveTextContent('1/4');
   });
 });
