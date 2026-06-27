@@ -31,7 +31,7 @@ test.describe('PWA Functionality Tests', () => {
     await page.waitForSelector('text=Shower Tracker')
     
     // Core functionality should work offline
-    await expect(page.locator('button:has-text("Record it")')).toBeVisible()
+    await expect(page.locator('button[aria-label="Record shower"]')).toBeVisible()
     await expect(page.locator('button[aria-label="Calendar"]')).toBeVisible()
     await expect(page.locator('button[aria-label="Settings"]')).toBeVisible()
   })
@@ -132,14 +132,14 @@ test.describe('PWA Functionality Tests', () => {
 
   test('should persist data offline and sync when online @nonblocking', async ({ page, context }) => {
     // Record a shower while online
-    await page.click('button:has-text("Record it")')
+    await page.click('button[aria-label="Record shower"]')
     await expect(page.locator('[data-testid="toast"]')).toBeVisible({ timeout: 10000 })
     
     // Go offline
     await context.setOffline(true)
     
     // Try to record another shower offline
-    await page.click('button:has-text("Record it")')
+    await page.click('button[aria-label="Record shower"]')
     
     // Should still work (stored locally)
     await expect(page.locator('[data-testid="toast"]').first()).toBeVisible({ timeout: 10000 })
@@ -257,7 +257,7 @@ test.describe('PWA Functionality Tests', () => {
     
     // Try to record multiple showers
     for (let i = 0; i < 10; i++) {
-      await page.click('button:has-text("Record it")')
+      await page.click('button[aria-label="Record shower"]')
       await page.waitForTimeout(100)
     }
     

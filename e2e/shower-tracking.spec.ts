@@ -9,7 +9,7 @@ test.describe('Shower Tracking E2E Tests', () => {
 
   test('should record a shower and display it in calendar @smoke', async ({ page }) => {
     // Record a shower
-    await page.click('button:has-text("Record it")')
+    await page.click('button[aria-label="Record shower"]')
     
     // Wait for success message or toast
     await expect(page.locator('[data-testid="toast"]')).toBeVisible({ timeout: 10000 })
@@ -96,7 +96,7 @@ test.describe('Shower Tracking E2E Tests', () => {
 
   test('should display time since last shower @smoke', async ({ page }) => {
     // Record a shower first
-    await page.click('button:has-text("Record it")')
+    await page.click('button[aria-label="Record shower"]')
     await expect(page.locator('[data-testid="toast"]')).toBeVisible({ timeout: 10000 })
     
     // Navigate back to home if not already there
@@ -117,7 +117,7 @@ test.describe('Shower Tracking E2E Tests', () => {
 
   test('should handle offline functionality @nonblocking', async ({ page, context }) => {
     // Record a shower while online
-    await page.click('button:has-text("Record it")')
+    await page.click('button[aria-label="Record shower"]')
     await expect(page.locator('[data-testid="toast"]')).toBeVisible({ timeout: 10000 })
     
     // Go offline
@@ -207,7 +207,7 @@ test.describe('Shower Tracking E2E Tests', () => {
 
   test('should show shower details when clicking calendar date @nonblocking', async ({ page }) => {
     // Record a shower first
-    await page.click('button:has-text("Record it")')
+    await page.click('button[aria-label="Record shower"]')
     await expect(page.locator('[data-testid="toast"]')).toBeVisible({ timeout: 10000 })
     
     // Navigate to calendar
@@ -248,7 +248,7 @@ test.describe('Shower Tracking E2E Tests', () => {
     await page.keyboard.press('Tab')
     
     // Record button should be focused (more flexible check)
-    const recordButton = page.locator('button:has-text("Record it")')
+    const recordButton = page.locator('button[aria-label="Record shower"]')
     
     // Try to focus the button explicitly if not focused
     await recordButton.focus()
@@ -283,7 +283,7 @@ test.describe('Shower Tracking E2E Tests', () => {
     
     // Try to record a shower multiple times to potentially trigger an error
     for (let i = 0; i < 3; i++) {
-      await page.click('button:has-text("Record it")')
+      await page.click('button[aria-label="Record shower"]')
       await page.waitForTimeout(500)
     }
     
