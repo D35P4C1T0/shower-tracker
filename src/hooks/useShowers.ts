@@ -1,11 +1,12 @@
 import { useCallback } from 'react';
-import { useAppContext } from '../stores/AppContext';
+import { useAppDispatch, useAppState } from '../stores/AppContext';
 import { ShowerService } from '../lib/database-service';
 import { getTimeDifference, formatTimeSince } from '../lib/utils';
 import type { ShowerEntry } from '../types';
 
 export function useShowers() {
-  const { state, dispatch } = useAppContext();
+  const state = useAppState();
+  const dispatch = useAppDispatch();
 
   // Add a new shower
   const addShower = useCallback(async (timestamp?: Date, notes?: string) => {

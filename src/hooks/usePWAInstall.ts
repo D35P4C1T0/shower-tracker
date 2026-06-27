@@ -1,90 +1,75 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { detectPlatform, type PlatformInfo } from '../lib/platform-utils';
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt(): Promise<void>;
-  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
-}
+import { usePWA } from './usePWA';
 
 interface PWAInstallState {
   platform: PlatformInfo;
-  deferredPrompt: BeforeInstallPromptEvent | null;
+  hasDismissedAndroidPrompt: boolean;
   showAndroidPrompt: boolean;
   showIOSPrompt: boolean;
   isInstalling: boolean;
 }
 
 export function usePWAInstall() {
+  const { isInstallable, isInstalled, installApp: installPWA } = usePWA();
   const [state, setState] = useState<PWAInstallState>(() => ({
     platform: detectPlatform(),
-    deferredPrompt: null,
+    hasDismissedAndroidPrompt: false,
     showAndroidPrompt: false,
     showIOSPrompt: false,
     isInstalling: false
   }));
 
-  // Handle beforeinstallprompt event for Android
   useEffect(() => {
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      const promptEvent = e as BeforeInstallPromptEvent;
-      
-      setState(prev => ({
-        ...prev,
-        deferredPrompt: promptEvent,
-        showAndroidPrompt: prev.platform.isAndroid && prev.platform.canInstall
-      }));
-    };
+    setState(prev => ({
+      ...prev,
+      showAndroidPrompt:
+        prev.platform.isAndroid &&
+        prev.platform.canInstall &&
+        isInstallable &&
+        !isInstalled &&
+        !prev.hasDismissedAndroidPrompt
+    }));
+  }, [isInstallable, isInstalled]);
 
-    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-
-    return () => {
-      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    };
-  }, []);
-
-  // Show iOS prompt if conditions are met
   useEffect(() => {
     const { isIOS, canInstall } = state.platform;
-    if (isIOS && canInstall) {
-      // Delay showing iOS prompt to avoid overwhelming user
+
+    if (isIOS && canInstall && !isInstalled) {
       const timer = setTimeout(() => {
         setState(prev => ({ ...prev, showIOSPrompt: true }));
       }, 2000);
 
       return () => clearTimeout(timer);
     }
-  }, [state.platform]);
+  }, [isInstalled, state.platform]);
 
   const installApp = useCallback(async () => {
-    if (!state.deferredPrompt) return false;
+    if (!isInstallable || isInstalled) return false;
 
     setState(prev => ({ ...prev, isInstalling: true }));
 
     try {
-      await state.deferredPrompt.prompt();
-      const choiceResult = await state.deferredPrompt.userChoice;
-      
+      await installPWA();
       setState(prev => ({
         ...prev,
-        deferredPrompt: null,
+        hasDismissedAndroidPrompt: true,
         showAndroidPrompt: false,
         isInstalling: false
       }));
-
-      return choiceResult.outcome === 'accepted';
+      return true;
     } catch (error) {
       console.error('Error during app installation:', error);
       setState(prev => ({ ...prev, isInstalling: false }));
       return false;
     }
-  }, [state.deferredPrompt]);
+  }, [installPWA, isInstallable, isInstalled]);
 
   const dismissAndroidPrompt = useCallback(() => {
     setState(prev => ({
       ...prev,
       showAndroidPrompt: false,
-      deferredPrompt: null
+      hasDismissedAndroidPrompt: true
     }));
   }, []);
 

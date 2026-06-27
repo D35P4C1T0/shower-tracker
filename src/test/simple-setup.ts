@@ -129,14 +129,6 @@ if (typeof Date.now !== 'function') {
   Date.now = () => new Date().getTime()
 }
 
-// Mock console methods to reduce noise in tests
-global.console = {
-  ...console,
-  warn: vi.fn(),
-  error: vi.fn(),
-  log: vi.fn()
-}
-
 // Mock document properties for React DOM
 Object.defineProperty(document, 'fonts', {
   value: {

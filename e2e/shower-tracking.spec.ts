@@ -21,7 +21,6 @@ test.describe('Shower Tracking E2E Tests', () => {
     await page.waitForSelector('[data-testid="calendar"]', { timeout: 10000 })
     
     // Wait a bit for the calendar to load shower data
-    await page.waitForTimeout(3000)
     
     // Check that today's date exists
     const today = new Date()

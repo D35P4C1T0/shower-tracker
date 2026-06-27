@@ -1,6 +1,7 @@
 import { renderHook } from '@testing-library/react'
+import type { ReactNode } from 'react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { usePWA } from '../usePWA'
+import { PWAProvider, usePWA } from '../usePWA'
 
 const { pwaServiceMock } = vi.hoisted(() => ({
   pwaServiceMock: {
@@ -47,7 +48,8 @@ describe('usePWA', () => {
   })
 
   it('initializes pwa service and exposes state', () => {
-    const { result } = renderHook(() => usePWA())
+    const wrapper = ({ children }: { children: ReactNode }) => <PWAProvider>{children}</PWAProvider>
+    const { result } = renderHook(() => usePWA(), { wrapper })
 
     expect(pwaServiceMock.registerServiceWorker).toHaveBeenCalledTimes(1)
     expect(pwaServiceMock.cacheEssentialData).toHaveBeenCalledTimes(1)

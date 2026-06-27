@@ -2,7 +2,7 @@ import { db } from '../database';
 import { FallbackShowerService } from '../storage-fallback';
 import { validateShowerNotes, validateShowerTimestamp } from '../shower-validation';
 import type { ShowerEntry } from '../../types';
-import { getRequiredStorageType } from './storage-state';
+import { runStorageOperation } from './storage-adapter';
 
 function toShowerEntry(shower: { id?: number; timestamp: Date; notes?: string }): ShowerEntry {
   return {
@@ -12,131 +12,83 @@ function toShowerEntry(shower: { id?: number; timestamp: Date; notes?: string })
   };
 }
 
+function parseShowerId(id: string): number {
+  const numericId = Number.parseInt(id, 10);
+  if (!Number.isFinite(numericId)) {
+    throw new Error('Invalid shower ID');
+  }
+  return numericId;
+}
+
 export class ShowerService {
   static async addShower(timestamp: Date = new Date(), notes?: string): Promise<ShowerEntry> {
     validateShowerTimestamp(timestamp);
     validateShowerNotes(notes);
 
-    const storageType = getRequiredStorageType();
-
-    if (storageType === 'localstorage') {
-      return await FallbackShowerService.addShower(timestamp, notes);
-    }
-
-    if (storageType === 'none') {
-      throw new Error('No storage available');
-    }
-
-    try {
-      const id = await db.showers.add({
-        timestamp,
-        notes
-      });
-
-      return {
-        id: id!.toString(),
-        timestamp,
-        notes
-      };
-    } catch (error) {
-      console.warn('IndexedDB failed, trying localStorage fallback:', error);
-      return await FallbackShowerService.addShower(timestamp, notes);
-    }
+    return await runStorageOperation({
+      indexedDB: async () => {
+        const id = await db.showers.add({ timestamp, notes });
+        return { id: id!.toString(), timestamp, notes };
+      },
+      localStorage: () => FallbackShowerService.addShower(timestamp, notes),
+      noStorage: () => {
+        throw new Error('No storage available');
+      }
+    });
   }
 
   static async getAllShowers(): Promise<ShowerEntry[]> {
-    const storageType = getRequiredStorageType();
-
-    if (storageType === 'localstorage') {
-      return await FallbackShowerService.getAllShowers();
-    }
-
-    if (storageType === 'none') {
-      return [];
-    }
-
-    try {
-      const showers = await db.showers.orderBy('timestamp').reverse().toArray();
-      return showers.map(toShowerEntry);
-    } catch (error) {
-      console.warn('IndexedDB failed, trying localStorage fallback:', error);
-      return await FallbackShowerService.getAllShowers();
-    }
+    return await runStorageOperation({
+      indexedDB: async () => {
+        const showers = await db.showers.orderBy('timestamp').reverse().toArray();
+        return showers.map(toShowerEntry);
+      },
+      localStorage: () => FallbackShowerService.getAllShowers(),
+      noStorage: () => []
+    });
   }
 
   static async getShowersByDateRange(startDate: Date, endDate: Date): Promise<ShowerEntry[]> {
     if (!(startDate instanceof Date) || !(endDate instanceof Date)) {
-      throw new Error('Invalid date provided');
+      throw new Error('Invalid date range');
     }
 
-    if (startDate > endDate) {
-      throw new Error('Start date must be before end date');
-    }
+    return await runStorageOperation({
+      indexedDB: async () => {
+        const showers = await db.showers
+          .where('timestamp')
+          .between(startDate, endDate, true, true)
+          .reverse()
+          .sortBy('timestamp');
 
-    const storageType = getRequiredStorageType();
-
-    if (storageType === 'localstorage') {
-      return await FallbackShowerService.getShowersByDateRange(startDate, endDate);
-    }
-
-    if (storageType === 'none') {
-      return [];
-    }
-
-    try {
-      const showers = await db.showers
-        .where('timestamp')
-        .between(startDate, endDate, true, true)
-        .toArray();
-
-      return showers.map(toShowerEntry);
-    } catch (error) {
-      console.warn('IndexedDB failed, trying localStorage fallback:', error);
-      return await FallbackShowerService.getShowersByDateRange(startDate, endDate);
-    }
+        return showers
+          .map(toShowerEntry)
+          .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      },
+      localStorage: () => FallbackShowerService.getShowersByDateRange(startDate, endDate),
+      noStorage: () => []
+    });
   }
 
   static async getLastShower(): Promise<ShowerEntry | null> {
-    const storageType = getRequiredStorageType();
-
-    if (storageType === 'localstorage') {
-      return await FallbackShowerService.getLastShower();
-    }
-
-    if (storageType === 'none') {
-      return null;
-    }
-
-    try {
-      const shower = await db.showers.orderBy('timestamp').reverse().first();
-      if (!shower) {
-        return null;
-      }
-
-      return toShowerEntry(shower);
-    } catch (error) {
-      console.warn('IndexedDB failed, trying localStorage fallback:', error);
-      return await FallbackShowerService.getLastShower();
-    }
+    const showers = await this.getAllShowers();
+    return showers.length > 0 ? showers[0] : null;
   }
 
   static async deleteShower(id: string): Promise<void> {
-    const storageType = getRequiredStorageType();
-
-    if (storageType === 'localstorage') {
-      return await FallbackShowerService.deleteShower(id);
+    if (!id || typeof id !== 'string') {
+      throw new Error('Invalid shower ID');
     }
 
-    if (storageType === 'none') {
-      throw new Error('No storage available');
-    }
-
-    try {
-      await db.showers.delete(parseInt(id));
-    } catch (error) {
-      console.warn('IndexedDB failed, trying localStorage fallback:', error);
-      await FallbackShowerService.deleteShower(id);
-    }
+    await runStorageOperation({
+      indexedDB: async () => {
+        await db.showers.delete(parseShowerId(id));
+      },
+      localStorage: () => FallbackShowerService.deleteShower(id),
+      noStorage: () => {
+        throw new Error('No storage available');
+      }
+    });
   }
 
   static async updateShower(id: string, updates: Partial<Omit<ShowerEntry, 'id'>>): Promise<void> {
@@ -147,43 +99,26 @@ export class ShowerService {
     if (updates.timestamp !== undefined) {
       validateShowerTimestamp(updates.timestamp);
     }
-
     validateShowerNotes(updates.notes);
 
-    const storageType = getRequiredStorageType();
-
-    if (storageType === 'localstorage') {
-      return await FallbackShowerService.updateShower(id, updates);
-    }
-
-    if (storageType === 'none') {
-      throw new Error('No storage available');
-    }
-
-    try {
-      await db.showers.update(parseInt(id), updates);
-    } catch (error) {
-      console.warn('IndexedDB failed, trying localStorage fallback:', error);
-      await FallbackShowerService.updateShower(id, updates);
-    }
+    await runStorageOperation({
+      indexedDB: async () => {
+        await db.showers.update(parseShowerId(id), updates);
+      },
+      localStorage: () => FallbackShowerService.updateShower(id, updates),
+      noStorage: () => {
+        throw new Error('No storage available');
+      }
+    });
   }
 
   static async clearAllShowers(): Promise<void> {
-    const storageType = getRequiredStorageType();
-
-    if (storageType === 'localstorage') {
-      return await FallbackShowerService.clearAllShowers();
-    }
-
-    if (storageType === 'none') {
-      return;
-    }
-
-    try {
-      await db.showers.clear();
-    } catch (error) {
-      console.warn('IndexedDB failed, trying localStorage fallback:', error);
-      await FallbackShowerService.clearAllShowers();
-    }
+    await runStorageOperation({
+      indexedDB: async () => {
+        await db.showers.clear();
+      },
+      localStorage: () => FallbackShowerService.clearAllShowers(),
+      noStorage: () => undefined
+    });
   }
 }

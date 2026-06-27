@@ -2,18 +2,29 @@ import { act, renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { usePWAInstall } from '../usePWAInstall'
 
-const { detectPlatformMock } = vi.hoisted(() => ({
+const { detectPlatformMock, installPWAMock } = vi.hoisted(() => ({
   detectPlatformMock: vi.fn(),
+  installPWAMock: vi.fn(),
 }))
 
 vi.mock('../../lib/platform-utils', () => ({
   detectPlatform: detectPlatformMock,
 }))
 
+vi.mock('../usePWA', () => ({
+  usePWA: () => ({
+    isInstallable: true,
+    isInstalled: false,
+    installApp: installPWAMock,
+  }),
+}))
+
 describe('usePWAInstall', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     detectPlatformMock.mockReset()
+    installPWAMock.mockReset()
+    installPWAMock.mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -38,7 +49,7 @@ describe('usePWAInstall', () => {
     expect(result.current.showIOSPrompt).toBe(true)
   })
 
-  it('stores beforeinstallprompt event and shows android prompt', () => {
+  it('shows android prompt when shared pwa install is available', () => {
     detectPlatformMock.mockReturnValue({
       isIOS: false,
       isAndroid: true,
@@ -47,18 +58,6 @@ describe('usePWAInstall', () => {
     })
 
     const { result } = renderHook(() => usePWAInstall())
-
-    const event = new Event('beforeinstallprompt') as Event & {
-      prompt: () => Promise<void>
-      userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
-    }
-    event.preventDefault = vi.fn()
-    event.prompt = vi.fn().mockResolvedValue(undefined)
-    event.userChoice = Promise.resolve({ outcome: 'accepted' })
-
-    act(() => {
-      window.dispatchEvent(event)
-    })
 
     expect(result.current.showAndroidPrompt).toBe(true)
   })

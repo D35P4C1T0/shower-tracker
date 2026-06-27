@@ -40,6 +40,13 @@ function applyTimeToDate(date: Date, timeValue: string): Date {
   return updatedDate;
 }
 
+function formatTime(timestamp: Date): string {
+  return new Date(timestamp).toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
 function isFutureDay(date: Date, now: Date = new Date()): boolean {
   const startOfDate = new Date(date);
   startOfDate.setHours(0, 0, 0, 0);
@@ -48,7 +55,7 @@ function isFutureDay(date: Date, now: Date = new Date()): boolean {
   return startOfDate.getTime() > startOfToday.getTime();
 }
 
-export function ShowerDetails({ date, showers, onClose, onShowersChanged }: ShowerDetailsProps) {
+function useShowerTimeEditor(date: Date, onShowersChanged?: () => void) {
   const [showerToEdit, setShowerToEdit] = useState<ShowerEntry | null>(null);
   const [draftShowerTimestamp, setDraftShowerTimestamp] = useState<Date | null>(null);
   const [editTime, setEditTime] = useState('');
@@ -56,7 +63,6 @@ export function ShowerDetails({ date, showers, onClose, onShowersChanged }: Show
   const [isSavingTime, setIsSavingTime] = useState(false);
   const { addShower, deleteShower, updateShower } = useShowers();
   const { success: showSuccess, error: showError } = useToast();
-  const isSelectedDateInFuture = isFutureDay(date);
   const isCreatingShower = !showerToEdit && draftShowerTimestamp !== null;
 
   const formatTime = (timestamp: Date) => {
@@ -152,6 +158,41 @@ export function ShowerDetails({ date, showers, onClose, onShowersChanged }: Show
       setIsDeletingShower(false);
     }
   };
+
+  return {
+    showerToEdit,
+    draftShowerTimestamp,
+    editTime,
+    setEditTime,
+    isCreatingShower,
+    isDeletingShower,
+    isSavingTime,
+    handleEditClick,
+    handleAddShower,
+    handleSaveTime,
+    handleCancelEditTime,
+    handleUseDefaultTime,
+    handleDeleteFromEdit,
+  };
+}
+
+export function ShowerDetails({ date, showers, onClose, onShowersChanged }: ShowerDetailsProps) {
+  const {
+    showerToEdit,
+    draftShowerTimestamp,
+    editTime,
+    setEditTime,
+    isCreatingShower,
+    isDeletingShower,
+    isSavingTime,
+    handleEditClick,
+    handleAddShower,
+    handleSaveTime,
+    handleCancelEditTime,
+    handleUseDefaultTime,
+    handleDeleteFromEdit,
+  } = useShowerTimeEditor(date, onShowersChanged);
+  const isSelectedDateInFuture = isFutureDay(date);
 
   return (
     <Card data-testid="shower-details">

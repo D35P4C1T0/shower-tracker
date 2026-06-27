@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from 'react';
-import { useAppContext } from '../stores/AppContext';
+import { useAppDispatch, useAppState } from '../stores/AppContext';
 import { NotificationService, type NotificationPermission } from '../lib/notification-service';
 import { MetadataService, SettingsService } from '../lib/database-service';
 import { NOTIFICATION_CONSTANTS } from '../lib/constants';
@@ -10,7 +10,8 @@ interface UseNotificationsOptions {
 
 export function useNotifications(options: UseNotificationsOptions = {}) {
   const { enableScheduler = false } = options;
-  const { state, dispatch } = useAppContext();
+  const state = useAppState();
+  const dispatch = useAppDispatch();
   const checkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   /**

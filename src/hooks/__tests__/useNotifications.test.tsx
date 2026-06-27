@@ -48,6 +48,8 @@ let mockState: MockState
 
 vi.mock('../../stores/AppContext', () => ({
   useAppContext: () => ({ state: mockState, dispatch }),
+  useAppState: () => mockState,
+  useAppDispatch: () => dispatch,
 }))
 
 vi.mock('../../lib/notification-service', () => ({

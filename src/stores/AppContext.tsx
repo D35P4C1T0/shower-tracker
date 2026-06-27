@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect, type ReactNode } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useMemo, type ReactNode } from 'react';
 import type { AppState, ShowerEntry, UserSettings } from '../types';
 import { DatabaseService, ShowerService, SettingsService, MetadataService } from '../lib/database-service';
 import { DEFAULT_SETTINGS } from '../lib/database-services/default-settings';
@@ -108,6 +108,8 @@ interface AppContextType {
 
 // Create context
 const AppContext = createContext<AppContextType | undefined>(undefined);
+const AppStateContext = createContext<ExtendedAppState | undefined>(undefined);
+const AppDispatchContext = createContext<React.Dispatch<AppAction> | undefined>(undefined);
 
 // Provider component
 interface AppProviderProps {
@@ -116,6 +118,7 @@ interface AppProviderProps {
 
 export function AppProvider({ children }: AppProviderProps) {
   const [state, dispatch] = useReducer(appReducer, initialState);
+  const contextValue = useMemo(() => ({ state, dispatch }), [state, dispatch]);
 
   // Initialize app data on mount
   useEffect(() => {
@@ -149,9 +152,13 @@ export function AppProvider({ children }: AppProviderProps) {
   }, []);
 
   return (
-    <AppContext.Provider value={{ state, dispatch }}>
-      {children}
-    </AppContext.Provider>
+    <AppDispatchContext.Provider value={dispatch}>
+      <AppStateContext.Provider value={state}>
+        <AppContext.Provider value={contextValue}>
+          {children}
+        </AppContext.Provider>
+      </AppStateContext.Provider>
+    </AppDispatchContext.Provider>
   );
 }
 
@@ -162,4 +169,20 @@ export function useAppContext() {
     throw new Error('useAppContext must be used within an AppProvider');
   }
   return context;
+}
+
+export function useAppState() {
+  const state = useContext(AppStateContext);
+  if (state === undefined) {
+    throw new Error('useAppState must be used within an AppProvider');
+  }
+  return state;
+}
+
+export function useAppDispatch() {
+  const dispatch = useContext(AppDispatchContext);
+  if (dispatch === undefined) {
+    throw new Error('useAppDispatch must be used within an AppProvider');
+  }
+  return dispatch;
 }

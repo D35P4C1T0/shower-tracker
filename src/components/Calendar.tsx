@@ -35,6 +35,183 @@ interface LoadMonthOptions {
 
 type MonthTransitionDirection = 'forward' | 'backward';
 
+interface CalendarGridProps {
+  dayNames: string[];
+  calendarGrid: Array<Date | null>;
+  hasShowers: (date: Date) => boolean;
+  getShowerCount: (date: Date) => number;
+  onDayClick: (date: Date) => void;
+}
+
+interface MonthOption {
+  value: number;
+  label: string;
+}
+
+interface MonthPickerDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  monthOptions: MonthOption[];
+  selectedMonth: number;
+  selectedYear: string;
+  onSelectMonth: (month: number) => void;
+  onSelectYear: (year: string) => void;
+  onSubmit: () => void;
+}
+
+function CalendarGrid({
+  dayNames,
+  calendarGrid,
+  hasShowers,
+  getShowerCount,
+  onDayClick,
+}: CalendarGridProps) {
+  return (
+    <div className="space-y-4">
+      <div className="grid grid-cols-7 gap-1">
+        {dayNames.map((dayName) => (
+          <div
+            key={dayName}
+            className="p-2 text-center text-sm font-medium text-muted-foreground"
+          >
+            {dayName}
+          </div>
+        ))}
+      </div>
+
+      <div className="grid h-[clamp(18rem,72vw,24rem)] grid-cols-7 grid-rows-6 gap-1 sm:h-[26rem]">
+        {calendarGrid.map((date, index) => (
+          <div
+            key={date ? date.toISOString() : `empty-${index}`}
+            className={cn('relative min-h-0 p-1', date && 'cursor-pointer')}
+          >
+            {date && (
+              <button
+                onClick={() => onDayClick(date)}
+                data-date={date.toISOString().split('T')[0]}
+                className={cn(
+                  'w-full h-full rounded-md border-2 border-transparent',
+                  'flex flex-col items-center justify-center',
+                  'text-sm transition-colors',
+                  'hover:bg-accent hover:text-accent-foreground',
+                  'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+                  isToday(date) && 'border-primary bg-primary/10',
+                  hasShowers(date) && 'bg-blue-100 dark:bg-blue-900/30 has-shower',
+                  hasShowers(date) && isToday(date) && 'bg-primary/20'
+                )}
+                title={
+                  hasShowers(date)
+                    ? `${formatDate(date)} - ${getShowerCount(date)} shower${getShowerCount(date) > 1 ? 's' : ''}`
+                    : formatDate(date)
+                }
+              >
+                <span className="font-medium">{date.getDate()}</span>
+                {hasShowers(date) && (
+                  <div className="flex gap-0.5 mt-0.5">
+                    {Array.from({ length: Math.min(getShowerCount(date), 3) }).map((_, i) => (
+                      <div
+                        key={i}
+                        data-testid="shower-dot"
+                        className="w-1.5 h-1.5 rounded-full bg-blue-500"
+                      />
+                    ))}
+                  </div>
+                )}
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <CalendarLegend />
+    </div>
+  );
+}
+
+function CalendarLegend() {
+  return (
+    <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground pt-4 border-t">
+      <div className="flex items-center gap-2">
+        <div className="w-3 h-3 rounded border-2 border-primary bg-primary/10" />
+        <span>Today</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <div className="w-3 h-3 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+          <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+        </div>
+        <span>Has showers</span>
+      </div>
+    </div>
+  );
+}
+
+function MonthPickerDialog({
+  open,
+  onOpenChange,
+  monthOptions,
+  selectedMonth,
+  selectedYear,
+  onSelectMonth,
+  onSelectYear,
+  onSubmit,
+}: MonthPickerDialogProps) {
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-sm overflow-y-auto p-4 sm:max-w-md sm:p-6"
+        data-testid="go-to-month-dialog"
+      >
+        <DialogHeader>
+          <DialogTitle>Go to month</DialogTitle>
+          <DialogDescription>
+            Pick the month and year to show in the calendar.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Month</Label>
+            <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {monthOptions.map((month) => (
+                <Button
+                  key={month.value}
+                  type="button"
+                  variant={selectedMonth === month.value ? 'default' : 'outline'}
+                  size="sm"
+                  onClick={() => onSelectMonth(month.value)}
+                  className="h-9 px-2"
+                  data-testid={`month-option-${month.value}`}
+                >
+                  {month.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="go-to-year">Year</Label>
+            <Input
+              id="go-to-year"
+              type="number"
+              min={1900}
+              max={2100}
+              value={selectedYear}
+              onChange={(event) => onSelectYear(event.target.value)}
+              data-testid="go-to-year-input"
+            />
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={onSubmit} data-testid="go-to-month-submit">
+            Show month
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function Calendar({ onDayClick, onTodaySelected, refreshTrigger = 0 }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [monthTransition, setMonthTransition] = useState<{
@@ -324,142 +501,26 @@ export function Calendar({ onDayClick, onTodaySelected, refreshTrigger = 0 }: Ca
           </div>
         </CardHeader>
         <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
-          <div
-            className="space-y-4"
-          >
-            <div className="grid grid-cols-7 gap-1">
-              {dayNames.map((dayName) => (
-                <div
-                  key={dayName}
-                  className="p-2 text-center text-sm font-medium text-muted-foreground"
-                >
-                  {dayName}
-                </div>
-              ))}
-            </div>
-
-            <div className="grid h-[clamp(18rem,72vw,24rem)] grid-cols-7 grid-rows-6 gap-1 sm:h-[26rem]">
-              {calendarGrid.map((date, index) => (
-                <div
-                  key={date ? date.toISOString() : `empty-${index}`}
-                  className={cn(
-                    'relative min-h-0 p-1',
-                    date && 'cursor-pointer'
-                  )}
-                >
-                  {date && (
-                    <button
-                      onClick={() => handleDayClick(date)}
-                      data-date={date.toISOString().split('T')[0]}
-                      className={cn(
-                        'w-full h-full rounded-md border-2 border-transparent',
-                        'flex flex-col items-center justify-center',
-                        'text-sm transition-colors',
-                        'hover:bg-accent hover:text-accent-foreground',
-                        'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
-                        isToday(date) && 'border-primary bg-primary/10',
-                        hasShowers(date) && 'bg-blue-100 dark:bg-blue-900/30 has-shower',
-                        hasShowers(date) && isToday(date) && 'bg-primary/20'
-                      )}
-                      title={
-                        hasShowers(date)
-                          ? `${formatDate(date)} - ${getShowerCount(date)} shower${getShowerCount(date) > 1 ? 's' : ''}`
-                          : formatDate(date)
-                      }
-                    >
-                      <span className="font-medium">{date.getDate()}</span>
-                      {hasShowers(date) && (
-                        <div className="flex gap-0.5 mt-0.5">
-                          {Array.from({ length: Math.min(getShowerCount(date), 3) }).map((_, i) => (
-                            <div
-                              key={i}
-                              data-testid="shower-dot"
-                              className="w-1.5 h-1.5 rounded-full bg-blue-500"
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            <div className="flex items-center justify-center gap-4 text-sm text-muted-foreground pt-4 border-t">
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded border-2 border-primary bg-primary/10" />
-                <span>Today</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <div className="w-3 h-3 rounded bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                </div>
-                <span>Has showers</span>
-              </div>
-            </div>
-          </div>
+          <CalendarGrid
+            dayNames={dayNames}
+            calendarGrid={calendarGrid}
+            hasShowers={hasShowers}
+            getShowerCount={getShowerCount}
+            onDayClick={handleDayClick}
+          />
         </CardContent>
       </Card>
 
-      <Dialog open={goToMonthOpen} onOpenChange={setGoToMonthOpen}>
-        <DialogContent
-          className="max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] max-w-sm overflow-y-auto p-4 sm:max-w-md sm:p-6"
-          data-testid="go-to-month-dialog"
-        >
-          <DialogHeader>
-            <DialogTitle>Go to month</DialogTitle>
-            <DialogDescription>
-              Pick the month and year to show in the calendar.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label>Month</Label>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {monthOptions.map((month) => (
-                  <Button
-                    key={month.value}
-                    type="button"
-                    variant={selectedMonth === month.value ? 'default' : 'outline'}
-                    size="sm"
-                    onClick={() => setSelectedMonth(month.value)}
-                    className="h-9 px-2"
-                    data-testid={`month-option-${month.value}`}
-                  >
-                    {month.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="go-to-year">Year</Label>
-              <Input
-                id="go-to-year"
-                type="number"
-                min={1900}
-                max={2100}
-                value={selectedYear}
-                onChange={(event) => setSelectedYear(event.target.value)}
-                data-testid="go-to-year-input"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setGoToMonthOpen(false)}
-            >
-              Cancel
-            </Button>
-            <Button
-              onClick={() => void handleGoToMonth()}
-              data-testid="go-to-month-submit"
-            >
-              Show month
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <MonthPickerDialog
+        open={goToMonthOpen}
+        onOpenChange={setGoToMonthOpen}
+        monthOptions={monthOptions}
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+        onSelectMonth={setSelectedMonth}
+        onSelectYear={setSelectedYear}
+        onSubmit={() => void handleGoToMonth()}
+      />
     </>
   );
 }

@@ -6,6 +6,7 @@ import { ThemeProvider } from '@/components/theme-provider'
 import { AppProvider } from '@/stores/AppContext'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { logWebVitals } from '@/lib/performance'
+import { PWAProvider } from '@/hooks/usePWA'
 
 // Initialize performance monitoring
 logWebVitals();
@@ -13,11 +14,13 @@ logWebVitals();
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="system" storageKey="shower-tracker-theme">
-        <AppProvider>
-          <App />
-        </AppProvider>
-      </ThemeProvider>
+        <ThemeProvider defaultTheme="system" storageKey="shower-tracker-theme">
+          <AppProvider>
+            <PWAProvider>
+              <App />
+            </PWAProvider>
+          </AppProvider>
+        </ThemeProvider>
     </ErrorBoundary>
   </StrictMode>,
 )

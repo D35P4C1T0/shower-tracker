@@ -38,6 +38,8 @@ const mockState = {
 
 vi.mock('../../stores/AppContext', () => ({
   useAppContext: () => ({ state: mockState, dispatch }),
+  useAppState: () => mockState,
+  useAppDispatch: () => dispatch,
 }))
 
 vi.mock('../../lib/database-service', () => ({

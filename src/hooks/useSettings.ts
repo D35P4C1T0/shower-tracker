@@ -1,11 +1,12 @@
 import { useCallback } from 'react';
-import { useAppContext } from '../stores/AppContext';
+import { useAppDispatch, useAppState } from '../stores/AppContext';
 import { SettingsService, MetadataService } from '../lib/database-service';
 import type { UserSettings, Theme } from '../types';
 import { NOTIFICATION_CONSTANTS } from '../lib/constants';
 
 export function useSettings() {
-  const { state, dispatch } = useAppContext();
+  const state = useAppState();
+  const dispatch = useAppDispatch();
 
   // Update a specific setting
   const updateSetting = useCallback(async <K extends keyof UserSettings>(

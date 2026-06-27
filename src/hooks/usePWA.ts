@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react';
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { pwaService, type PWAUpdateInfo, type PWAInstallInfo, type NetworkStatus } from '../lib/pwa-service';
 
 /**
@@ -6,7 +6,26 @@ import { pwaService, type PWAUpdateInfo, type PWAInstallInfo, type NetworkStatus
  */
 const UPDATE_CHECK_INTERVAL_MS = 60 * 60 * 1000;
 
-export function usePWA() {
+interface PWAContextValue {
+  isUpdateAvailable: boolean;
+  currentVersion?: string;
+  latestVersion?: string;
+  updateApp: () => Promise<void>;
+  checkForUpdates: () => Promise<boolean>;
+  isInstallable: boolean;
+  isInstalled: boolean;
+  installApp: () => Promise<void>;
+  isOnline: boolean;
+  isOfflineReady: boolean;
+  supportsNotifications: boolean;
+  requestNotificationPermission: () => Promise<NotificationPermission>;
+  showTestNotification: (title: string, options?: NotificationOptions) => Promise<void>;
+  clearCaches: () => Promise<void>;
+}
+
+const PWAContext = createContext<PWAContextValue | undefined>(undefined);
+
+export function PWAProvider({ children }: { children: ReactNode }) {
   const [updateInfo, setUpdateInfo] = useState<PWAUpdateInfo>({
     isUpdateAvailable: false,
     currentVersion: undefined,
@@ -67,23 +86,23 @@ export function usePWA() {
     };
   }, []);
 
-  const requestNotificationPermission = async (): Promise<NotificationPermission> => {
+  const requestNotificationPermission = useCallback(async (): Promise<NotificationPermission> => {
     return await pwaService.requestNotificationPermission();
-  };
+  }, []);
 
-  const showTestNotification = async (title: string, options?: NotificationOptions): Promise<void> => {
+  const showTestNotification = useCallback(async (title: string, options?: NotificationOptions): Promise<void> => {
     await pwaService.showNotification(title, options);
-  };
+  }, []);
 
-  const clearCaches = async (): Promise<void> => {
+  const clearCaches = useCallback(async (): Promise<void> => {
     await pwaService.clearCaches();
-  };
+  }, []);
 
   const checkForUpdates = useCallback(async (): Promise<boolean> => {
     return await pwaService.checkForUpdates();
   }, []);
 
-  return {
+  const value = useMemo<PWAContextValue>(() => ({
     // Update functionality
     isUpdateAvailable: updateInfo.isUpdateAvailable,
     currentVersion: updateInfo.currentVersion,
@@ -104,8 +123,26 @@ export function usePWA() {
     supportsNotifications: pwaService.supportsNotifications(),
     requestNotificationPermission,
     showTestNotification,
-    
+
     // Development utilities
     clearCaches
-  };
+  }), [
+    updateInfo,
+    checkForUpdates,
+    installInfo,
+    networkStatus,
+    requestNotificationPermission,
+    showTestNotification,
+    clearCaches
+  ]);
+
+  return createElement(PWAContext.Provider, { value }, children);
+}
+
+export function usePWA() {
+  const context = useContext(PWAContext);
+  if (context === undefined) {
+    throw new Error('usePWA must be used within a PWAProvider');
+  }
+  return context;
 }
