@@ -4,6 +4,8 @@ test.describe('PWA Functionality Tests', () => {
   test.beforeEach(async ({ page }) => {
     await page.goto('/')
     await page.waitForSelector('text=Shower Tracker')
+    const onboarding = page.getByTestId('onboarding-dialog')
+    if (await onboarding.isVisible().catch(() => false)) await onboarding.getByRole('button', { name: 'Get started' }).click()
   })
 
   test('should register service worker @smoke', async ({ page }) => {
@@ -149,15 +151,15 @@ test.describe('PWA Functionality Tests', () => {
     await page.waitForSelector('[data-testid="calendar"]', { timeout: 10000 })
     
     // Should show shower data
-    const today = new Date().toISOString().split('T')[0]
+    const today = await page.evaluate(() => {
+      const date = new Date()
+      return [date.getFullYear(), `${date.getMonth() + 1}`.padStart(2, '0'), `${date.getDate()}`.padStart(2, '0')].join('-')
+    })
     const todayButton = page.locator(`button[data-date="${today}"]`)
     await expect(todayButton).toBeVisible({ timeout: 10000 })
     
     // Check if shower was recorded (look for any visual indicator or just verify button exists)
-    const hasIndicator = await todayButton.locator('.bg-blue-500').isVisible().catch(() => false)
-    if (!hasIndicator) {
-      console.log('Visual shower indicator not found, but test continues')
-    }
+    await expect(todayButton).toHaveClass(/has-shower/)
     
     // Go back online
     await context.setOffline(false)
@@ -170,10 +172,7 @@ test.describe('PWA Functionality Tests', () => {
     // Check if shower was recorded (look for any visual indicator or just verify button exists)
     await expect(todayButton).toBeVisible({ timeout: 5000 })
     
-    const hasIndicator2 = await todayButton.locator('.bg-blue-500').isVisible().catch(() => false)
-    if (!hasIndicator2) {
-      console.log('Visual shower indicator not found, but test continues')
-    }
+    await expect(todayButton).toHaveClass(/has-shower/)
   })
 
   test('should handle notification permissions @nonblocking', async ({ page, context }) => {

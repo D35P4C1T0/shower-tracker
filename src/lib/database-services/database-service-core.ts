@@ -113,6 +113,9 @@ function normalizeImportData(source: string | unknown): {
   if (!isObject(data)) {
     throw new Error('Import data must be an object');
   }
+  if (data.schemaVersion !== 1) {
+    throw new Error('Unsupported or missing export schema version');
+  }
 
   return {
     showers: normalizeShowers(data.showers),
@@ -183,21 +186,34 @@ export class DatabaseService {
 
   static async importData(source: string | unknown): Promise<ImportResult> {
     const data = normalizeImportData(source);
+    const previousData = await this.exportData();
 
-    await this.clearAllData();
-    await SettingsService.saveSettings(data.settings);
-
-    for (const shower of data.showers) {
-      await ShowerService.addShower(shower.timestamp, shower.notes);
-    }
-
-    for (const [key, value] of Object.entries(data.metadata)) {
-      await MetadataService.setMetadata(key, value);
+    try {
+      await this.replaceAllData(data);
+    } catch (error) {
+      try {
+        await this.replaceAllData(normalizeImportData(previousData));
+      } catch (rollbackError) {
+        console.error('Import rollback failed:', rollbackError);
+        throw new Error('Import failed and automatic rollback failed. Use your pre-import export to recover.');
+      }
+      throw error;
     }
 
     return {
       showersImported: data.showers.length,
       metadataImported: Object.keys(data.metadata).length
     };
+  }
+
+  private static async replaceAllData(data: ReturnType<typeof normalizeImportData>): Promise<void> {
+    await this.clearAllData();
+    await SettingsService.saveSettings(data.settings);
+    for (const shower of data.showers) {
+      await ShowerService.addShower(shower.timestamp, shower.notes);
+    }
+    for (const [key, value] of Object.entries(data.metadata)) {
+      await MetadataService.setMetadata(key, value);
+    }
   }
 }

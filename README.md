@@ -18,7 +18,7 @@ A modern Progressive Web App (PWA) for tracking your shower habits and maintaini
 ### 📱 PWA Capabilities
 - **Installable** - Add to home screen on mobile and desktop
 - **Offline support** - Works without internet connection
-- **Push notifications** - Customizable shower reminders
+- **Active-app notifications** - Customizable reminders while the app is open
 - **Cross-platform** - Works on iOS, Android, and desktop
 
 ### 🎨 User Experience
@@ -98,9 +98,7 @@ pnpm run test:e2e
 
 ## 📊 Project Stats
 
-- **185 unit tests** - Comprehensive test coverage
-- **33 test files** - Testing all components and utilities
-- **~600KB build size** - Optimized for fast loading
+- **Automated unit and browser tests** - Coverage for components, hooks, storage, and core flows
 - **PWA compliant** - Meets all PWA requirements
 - **Accessibility ready** - WCAG 2.1 compliant
 

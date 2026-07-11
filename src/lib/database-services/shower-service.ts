@@ -13,10 +13,11 @@ function toShowerEntry(shower: { id?: number; timestamp: Date; notes?: string })
 }
 
 function parseShowerId(id: string): number {
-  const numericId = Number.parseInt(id, 10);
-  if (!Number.isFinite(numericId)) {
+  if (!/^\d+$/.test(id)) {
     throw new Error('Invalid shower ID');
   }
+  const numericId = Number(id);
+  if (!Number.isSafeInteger(numericId)) throw new Error('Invalid shower ID');
   return numericId;
 }
 
@@ -49,7 +50,9 @@ export class ShowerService {
   }
 
   static async getShowersByDateRange(startDate: Date, endDate: Date): Promise<ShowerEntry[]> {
-    if (!(startDate instanceof Date) || !(endDate instanceof Date)) {
+    if (!(startDate instanceof Date) || !(endDate instanceof Date) ||
+        !Number.isFinite(startDate.getTime()) || !Number.isFinite(endDate.getTime()) ||
+        startDate > endDate) {
       throw new Error('Invalid date range');
     }
 
@@ -82,7 +85,8 @@ export class ShowerService {
 
     await runStorageOperation({
       indexedDB: async () => {
-        await db.showers.delete(parseShowerId(id));
+        const deleted = await db.showers.delete(parseShowerId(id));
+        void deleted;
       },
       localStorage: () => FallbackShowerService.deleteShower(id),
       noStorage: () => {
@@ -103,7 +107,8 @@ export class ShowerService {
 
     await runStorageOperation({
       indexedDB: async () => {
-        await db.showers.update(parseShowerId(id), updates);
+        const updated = await db.showers.update(parseShowerId(id), updates);
+        if (updated === 0) throw new Error('Shower not found');
       },
       localStorage: () => FallbackShowerService.updateShower(id, updates),
       noStorage: () => {

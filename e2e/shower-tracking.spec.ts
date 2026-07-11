@@ -5,6 +5,8 @@ test.describe('Shower Tracking E2E Tests', () => {
     await page.goto('/')
     // Wait for app to load
     await page.waitForSelector('text=Shower Tracker')
+    const onboarding = page.getByTestId('onboarding-dialog')
+    if (await onboarding.isVisible().catch(() => false)) await onboarding.getByRole('button', { name: 'Get started' }).click()
   })
 
   test('should record a shower and display it in calendar @smoke', async ({ page }) => {
@@ -23,26 +25,15 @@ test.describe('Shower Tracking E2E Tests', () => {
     // Wait a bit for the calendar to load shower data
     
     // Check that today's date exists
-    const today = new Date()
-    const todayButton = page.locator(`button[data-date="${today.toISOString().split('T')[0]}"]`)
+    const today = await page.evaluate(() => {
+      const date = new Date()
+      return [date.getFullYear(), `${date.getMonth() + 1}`.padStart(2, '0'), `${date.getDate()}`.padStart(2, '0')].join('-')
+    })
+    const todayButton = page.locator(`button[data-date="${today}"]`)
     await expect(todayButton).toBeVisible({ timeout: 10000 })
     
     // Check if the button has shower indicator - try multiple approaches
-    const hasShowerIndicator = await Promise.race([
-      // Look for blue dots
-      todayButton.locator('.bg-blue-500').isVisible(),
-      // Look for background color change
-      todayButton.evaluate(el => el.classList.contains('bg-blue-100')),
-      // Look for any child elements that might indicate showers
-      todayButton.locator('div').count().then(count => count > 1)
-    ])
-    
-    if (!hasShowerIndicator) {
-      console.log('No visual shower indicator found, but shower was recorded successfully')
-    }
-    
-    // At minimum, verify the calendar loaded and today's date is clickable
-    await expect(todayButton).toBeVisible()
+    await expect(todayButton).toHaveClass(/has-shower/)
   })
 
   test('should update settings and persist changes @nonblocking', async ({ page }) => {
@@ -89,9 +80,10 @@ test.describe('Shower Tracking E2E Tests', () => {
       console.log('Theme toggle not found or not working, skipping theme test')
     }
     
-    // Refresh page and verify settings persist
+    const expectedTheme = await page.locator('html').getAttribute('class')
     await page.reload()
     await page.waitForSelector('text=Shower Tracker')
+    if (expectedTheme?.includes('dark')) await expect(page.locator('html')).toHaveClass(/dark/)
   })
 
   test('should display time since last shower @smoke', async ({ page }) => {
@@ -137,12 +129,7 @@ test.describe('Shower Tracking E2E Tests', () => {
       page.locator('text=Offline')
     )
     
-    // Try to wait for offline indicator, but don't fail if it doesn't appear
-    try {
-      await expect(offlineIndicator).toBeVisible({ timeout: 3000 })
-    } catch {
-      console.log('Offline indicator not shown, continuing test...')
-    }
+    await expect(offlineIndicator).toBeVisible({ timeout: 5000 })
     
     // Go back online
     await context.setOffline(false)
@@ -215,8 +202,11 @@ test.describe('Shower Tracking E2E Tests', () => {
     await page.waitForSelector('[data-testid="calendar"]', { timeout: 10000 })
     
     // Click on today's date
-    const today = new Date()
-    const todayButton = page.locator(`button[data-date="${today.toISOString().split('T')[0]}"]`)
+    const today = await page.evaluate(() => {
+      const date = new Date()
+      return [date.getFullYear(), `${date.getMonth() + 1}`.padStart(2, '0'), `${date.getDate()}`.padStart(2, '0')].join('-')
+    })
+    const todayButton = page.locator(`button[data-date="${today}"]`)
     await expect(todayButton).toBeVisible({ timeout: 10000 })
     await todayButton.click()
     

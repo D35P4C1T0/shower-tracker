@@ -48,6 +48,10 @@ interface MonthOption {
   label: string;
 }
 
+function getLocalDateKey(date: Date): string {
+  return [date.getFullYear(), `${date.getMonth() + 1}`.padStart(2, '0'), `${date.getDate()}`.padStart(2, '0')].join('-');
+}
+
 interface MonthPickerDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -88,7 +92,7 @@ function CalendarGrid({
             {date && (
               <button
                 onClick={() => onDayClick(date)}
-                data-date={date.toISOString().split('T')[0]}
+                data-date={getLocalDateKey(date)}
                 className={cn(
                   'w-full h-full rounded-md border-2 border-transparent',
                   'flex flex-col items-center justify-center',

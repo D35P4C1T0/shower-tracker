@@ -39,6 +39,9 @@ jobs:
       - name: Run unit tests
         run: pnpm run test
 
+      - name: Run lint
+        run: pnpm run lint
+
       - name: Run e2e tests (blocking smoke - Chromium only)
         env:
           CI: true

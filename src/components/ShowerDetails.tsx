@@ -59,6 +59,7 @@ function useShowerTimeEditor(date: Date, onShowersChanged?: () => void) {
   const [showerToEdit, setShowerToEdit] = useState<ShowerEntry | null>(null);
   const [draftShowerTimestamp, setDraftShowerTimestamp] = useState<Date | null>(null);
   const [editTime, setEditTime] = useState('');
+  const [editNotes, setEditNotes] = useState('');
   const [isDeletingShower, setIsDeletingShower] = useState(false);
   const [isSavingTime, setIsSavingTime] = useState(false);
   const { addShower, deleteShower, updateShower } = useShowers();
@@ -76,6 +77,7 @@ function useShowerTimeEditor(date: Date, onShowersChanged?: () => void) {
     setDraftShowerTimestamp(null);
     setShowerToEdit(shower);
     setEditTime(formatTimeInput(new Date(shower.timestamp)));
+    setEditNotes(shower.notes ?? '');
   };
 
   const handleAddShower = () => {
@@ -83,6 +85,7 @@ function useShowerTimeEditor(date: Date, onShowersChanged?: () => void) {
     setShowerToEdit(null);
     setDraftShowerTimestamp(showerTimestamp);
     setEditTime(formatTimeInput(showerTimestamp));
+    setEditNotes('');
   };
 
   const handleSaveTime = async () => {
@@ -98,16 +101,23 @@ function useShowerTimeEditor(date: Date, onShowersChanged?: () => void) {
       }
 
       if (showerToEdit) {
-        await updateShower(showerToEdit.id, { timestamp: updatedTimestamp });
+        const notes = editNotes.trim() || undefined;
+        const updates = notes === showerToEdit.notes
+          ? { timestamp: updatedTimestamp }
+          : { timestamp: updatedTimestamp, notes };
+        await updateShower(showerToEdit.id, updates);
         showSuccess('Shower time updated', `Updated shower time to ${formatTime(updatedTimestamp)}.`);
       } else {
-        await addShower(updatedTimestamp);
+        const notes = editNotes.trim();
+        if (notes) await addShower(updatedTimestamp, notes);
+        else await addShower(updatedTimestamp);
         showSuccess('Shower added', `Added shower for ${formatDate(date)} at ${formatTime(updatedTimestamp)}.`);
       }
 
       setShowerToEdit(null);
       setDraftShowerTimestamp(null);
       setEditTime('');
+      setEditNotes('');
       onShowersChanged?.();
     } catch (error) {
       showError(showerToEdit ? 'Failed to update shower time' : 'Failed to add shower', error instanceof Error ? error.message : 'Unknown error');
@@ -120,6 +130,7 @@ function useShowerTimeEditor(date: Date, onShowersChanged?: () => void) {
     setShowerToEdit(null);
     setDraftShowerTimestamp(null);
     setEditTime('');
+    setEditNotes('');
   };
 
   const handleUseDefaultTime = async () => {
@@ -164,6 +175,8 @@ function useShowerTimeEditor(date: Date, onShowersChanged?: () => void) {
     draftShowerTimestamp,
     editTime,
     setEditTime,
+    editNotes,
+    setEditNotes,
     isCreatingShower,
     isDeletingShower,
     isSavingTime,
@@ -182,6 +195,8 @@ export function ShowerDetails({ date, showers, onClose, onShowersChanged }: Show
     draftShowerTimestamp,
     editTime,
     setEditTime,
+    editNotes,
+    setEditNotes,
     isCreatingShower,
     isDeletingShower,
     isSavingTime,
@@ -326,6 +341,18 @@ export function ShowerDetails({ date, showers, onClose, onShowersChanged }: Show
               onChange={(event) => setEditTime(event.target.value)}
               className="h-12 min-w-0 max-w-full text-base [appearance:textfield]"
               data-testid="edit-shower-time-input"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="shower-notes">Notes</Label>
+            <textarea
+              id="shower-notes"
+              value={editNotes}
+              maxLength={1000}
+              onChange={(event) => setEditNotes(event.target.value)}
+              className="min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              placeholder="Optional notes"
+              data-testid="edit-shower-notes"
             />
           </div>
           <div className="grid min-w-0 grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)] gap-2">

@@ -413,6 +413,7 @@ describe('DatabaseService', () => {
       await ShowerService.addShower(new Date('2024-01-01T10:00:00Z'), 'Old data');
 
       const result = await DatabaseService.importData({
+        schemaVersion: 1,
         showers: [
           { timestamp: '2024-02-01T08:00:00.000Z', notes: 'Morning' },
           { timestamp: '2024-02-02T20:30:00.000Z' }
@@ -457,6 +458,7 @@ describe('DatabaseService', () => {
       await ShowerService.addShower(new Date('2024-01-01T10:00:00Z'), 'Keep me');
 
       await expect(DatabaseService.importData({
+        schemaVersion: 1,
         showers: [
           { timestamp: new Date(Date.now() + 60 * 60 * 1000).toISOString() }
         ],
@@ -470,6 +472,7 @@ describe('DatabaseService', () => {
 
     it('should import data from a JSON string', async () => {
       await DatabaseService.importData(JSON.stringify({
+        schemaVersion: 1,
         showers: [{ timestamp: '2024-03-01T12:00:00.000Z' }],
         metadata: {}
       }));

@@ -163,15 +163,14 @@ describe('FallbackShowerService', () => {
     await FallbackShowerService.addShower(new Date());
     await FallbackShowerService.clearAllShowers();
 
-    const showers = await FallbackShowerService.getAllShowers();
-    expect(showers).toEqual([]);
+    expect(await FallbackShowerService.getAllShowers()).toEqual([]);
   });
 
   it('handles corrupted data gracefully', async () => {
     localStorageMock.setItem('shower-tracker-showers', 'invalid json');
     
-    const showers = await FallbackShowerService.getAllShowers();
-    expect(showers).toEqual([]);
+    await expect(FallbackShowerService.getAllShowers()).rejects.toThrow('recovery copy was preserved');
+    expect(FallbackShowerService.getCorruptDataBackup()).toBe('invalid json');
   });
 });
 

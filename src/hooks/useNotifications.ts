@@ -13,6 +13,8 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const checkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const latestStateRef = useRef(state);
+  latestStateRef.current = state;
 
   /**
    * Request notification permission from the user
@@ -41,7 +43,8 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
    */
   const checkAndSendNotification = useCallback(async (): Promise<boolean> => {
     try {
-      const { settings, showers } = state;
+      const currentState = latestStateRef.current;
+      const { settings, showers } = currentState;
       
       // Get the last shower
       const lastShower = showers && showers.length > 0 ? showers[0] : null;
@@ -51,7 +54,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       const shouldSend = NotificationService.shouldSendNotification(
         settings,
         lastShowerDate,
-        state.lastNotificationCheck
+        currentState.lastNotificationCheck
       );
 
       if (!shouldSend) return false;
@@ -84,7 +87,7 @@ export function useNotifications(options: UseNotificationsOptions = {}) {
       console.error('Failed to check and send notification:', error);
       return false;
     }
-  }, [state, dispatch]);
+  }, [dispatch]);
 
   /**
    * Start periodic notification checking

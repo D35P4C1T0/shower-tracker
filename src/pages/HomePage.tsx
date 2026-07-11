@@ -9,6 +9,7 @@ import { useShowers } from '@/hooks/useShowers'
 import { useSettings } from '@/hooks/useSettings'
 import { useToast } from '@/components/toast'
 import { CheckCircle, Loader2, Plus } from 'lucide-react'
+import { ShowerInsights } from '@/components/shower-insights'
 
 export function HomePage() {
   const { showers, addShower, formatTimeSinceLastShower, getLastShower, isLoading, error } = useShowers()
@@ -102,6 +103,8 @@ export function HomePage() {
           />
         </CardContent>
       </Card>
+
+      <ShowerInsights showers={showers} />
 
       <Button
         className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-[max(1rem,calc((100vw-28rem)/2+1rem))] z-40 h-14 w-14 rounded-lg shadow-lg"

@@ -11,6 +11,7 @@ const STORAGE_KEYS = {
 
 const LEGACY_WEEKLY_TARGET_KEY = 'shower-tracker-weekly-target';
 const LEGACY_MONTHLY_TARGET_KEY = 'shower-tracker-monthly-target';
+const CORRUPT_SHOWERS_KEY = 'shower-tracker-showers-corrupt-backup';
 
 // Check if localStorage is available
 function isLocalStorageAvailable(): boolean {
@@ -69,7 +70,9 @@ export class FallbackShowerService {
     validateShowerNotes(notes);
 
     const showers = await this.getAllShowers();
-    const id = Date.now().toString();
+    const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const newShower: ShowerEntry = { id, timestamp, notes };
     
     const updatedShowers = [newShower, ...showers].sort((a, b) => 
@@ -97,7 +100,8 @@ export class FallbackShowerService {
       }));
     } catch (error) {
       console.warn('Failed to parse shower data:', error);
-      return [];
+      safeSetItem(CORRUPT_SHOWERS_KEY, data);
+      throw new Error('Stored shower data is corrupt. A recovery copy was preserved.');
     }
   }
 
@@ -117,6 +121,7 @@ export class FallbackShowerService {
   static async deleteShower(id: string): Promise<void> {
     const showers = await this.getAllShowers();
     const updatedShowers = showers.filter(shower => shower.id !== id);
+    if (updatedShowers.length === showers.length) throw new Error('Shower not found');
     
     const success = safeSetItem(STORAGE_KEYS.SHOWERS, JSON.stringify(updatedShowers));
     if (!success) {
@@ -131,6 +136,7 @@ export class FallbackShowerService {
     validateShowerNotes(updates.notes);
 
     const showers = await this.getAllShowers();
+    if (!showers.some(shower => shower.id === id)) throw new Error('Shower not found');
     const updatedShowers = showers.map(shower =>
       shower.id === id ? { ...shower, ...updates } : shower
     );
@@ -146,6 +152,10 @@ export class FallbackShowerService {
     if (!success) {
       throw new Error('Failed to clear shower data');
     }
+  }
+
+  static getCorruptDataBackup(): string | null {
+    return safeGetItem(CORRUPT_SHOWERS_KEY);
   }
 }
 

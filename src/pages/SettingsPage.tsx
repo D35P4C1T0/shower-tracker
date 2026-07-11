@@ -16,6 +16,8 @@ import { formatAppVersion } from '@/lib/app-version'
 import { DatabaseService } from '@/lib/database-service'
 import { Github, User, Bell, BellOff, AlertCircle, Tag, Download, Upload } from 'lucide-react'
 
+const MAX_IMPORT_BYTES = 2 * 1024 * 1024
+
 export function SettingsPage() {
   const {
     settings,
@@ -150,9 +152,34 @@ export function SettingsPage() {
     }
   }
 
+  const handleExportCsv = async () => {
+    setIsExportingData(true)
+    try {
+      const data = await DatabaseService.exportData()
+      const escape = (value: unknown) => `"${String(value ?? '').replace(/"/g, '""')}"`
+      const rows = ['timestamp,notes', ...data.showers.map(shower => `${escape(new Date(shower.timestamp).toISOString())},${escape(shower.notes)}`)]
+      const url = URL.createObjectURL(new Blob([rows.join('\n')], { type: 'text/csv;charset=utf-8' }))
+      const link = document.createElement('a')
+      link.href = url
+      link.download = `shower-tracker-${new Date().toISOString().slice(0, 10)}.csv`
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch {
+      showError('Failed to export data', 'Could not create CSV export.')
+    } finally {
+      setIsExportingData(false)
+    }
+  }
+
   const handleImportFile = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0]
     if (!file) return
+
+    if (file.size > MAX_IMPORT_BYTES) {
+      showError('Import file too large', 'Choose a JSON export smaller than 2 MB.')
+      event.target.value = ''
+      return
+    }
 
     setImportText(await file.text())
     setImportFileName(file.name)
@@ -307,7 +334,7 @@ export function SettingsPage() {
                 <div className="min-w-0 space-y-1">
                   <Label htmlFor="notifications-enabled">Enable notifications</Label>
                   <p className="text-sm text-muted-foreground">
-                    Get reminders when it's time to shower
+                    Get reminders while the app is open. Closed-app reminders require Web Push and are not available yet.
                   </p>
                 </div>
                 <Switch
@@ -416,6 +443,12 @@ export function SettingsPage() {
               {formatAppVersion()}
             </span>
           </div>
+          <div className="flex items-center justify-between py-2 border-t border-border/50">
+            <span className="text-sm text-muted-foreground">Storage</span>
+            <span className="text-sm font-mono" data-testid="storage-type">
+              {DatabaseService.getStorageType?.() ?? 'initializing'}
+            </span>
+          </div>
         </CardContent>
       </Card>
 
@@ -437,6 +470,15 @@ export function SettingsPage() {
             >
               <Download className="mr-2 h-4 w-4" />
               {isExportingData ? 'Exporting...' : 'Export JSON'}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleExportCsv}
+              disabled={isExportingData || isImportingData}
+              data-testid="export-csv"
+            >
+              <Download className="mr-2 h-4 w-4" />
+              Export CSV
             </Button>
 
             <div className="grid gap-2">

@@ -11,6 +11,7 @@ import { ToastProvider } from '@/components/toast'
 import { useNotifications } from '@/hooks/useNotifications'
 import { cn } from '@/lib/utils'
 import { getPageForSwipe, getPageFromSearch, getUrlForPage, type AppPage } from '@/lib/page-navigation'
+import { OnboardingDialog } from '@/components/onboarding-dialog'
 
 const SWIPE_THRESHOLD_PX = 56
 
@@ -97,6 +98,7 @@ function App() {
           </div>
         </Layout>
         <PWAInstallPrompt />
+        <OnboardingDialog />
       </ToastProvider>
     </ErrorBoundary>
   )
