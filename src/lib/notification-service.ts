@@ -70,30 +70,20 @@ export class NotificationService {
     }
 
     try {
-      // Close any existing shower reminder notifications
-      await this.closeExistingNotifications();
+      const registration = await navigator.serviceWorker.ready;
+      await this.closeExistingNotifications(registration);
 
-      const notification = new Notification(options.title, {
+      await registration.showNotification(options.title, {
         body: options.body,
         icon: options.icon || this.withBasePath(this.DEFAULT_ICON),
         badge: options.badge || this.withBasePath(this.DEFAULT_BADGE),
         tag: options.tag || this.NOTIFICATION_TAG,
         requireInteraction: options.requireInteraction || false,
-        silent: false
+        silent: false,
+        data: {
+          url: new URL(import.meta.env.BASE_URL || '/', window.location.origin).toString()
+        }
       });
-
-      // Auto-close notification after 10 seconds if not requiring interaction
-      if (!options.requireInteraction) {
-        setTimeout(() => {
-          notification.close();
-        }, 10000);
-      }
-
-      // Handle notification click
-      notification.onclick = () => {
-        window.focus();
-        notification.close();
-      };
 
       return true;
     } catch (error) {
@@ -105,18 +95,14 @@ export class NotificationService {
   /**
    * Close existing notifications with the same tag
    */
-  private static async closeExistingNotifications(): Promise<void> {
-    if ('serviceWorker' in navigator) {
-      try {
-        const registration = await navigator.serviceWorker.ready;
-        const notifications = await registration.getNotifications({
-          tag: this.NOTIFICATION_TAG
-        });
-        
-        notifications.forEach(notification => notification.close());
-      } catch (error) {
-        console.warn('Could not close existing notifications:', error);
-      }
+  private static async closeExistingNotifications(registration: ServiceWorkerRegistration): Promise<void> {
+    try {
+      const notifications = await registration.getNotifications({
+        tag: this.NOTIFICATION_TAG
+      });
+      notifications.forEach(notification => notification.close());
+    } catch (error) {
+      console.warn('Could not close existing notifications:', error);
     }
   }
 

@@ -17,6 +17,7 @@ concurrency:
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,25 +34,36 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Install Playwright browsers and system deps
-        run: pnpm exec playwright install --with-deps
+      - name: Run lint
+        run: pnpm run lint
 
       - name: Run unit tests
         run: pnpm run test
 
-      - name: Run lint
-        run: pnpm run lint
+      - name: Install Chromium and system dependencies
+        run: pnpm exec playwright install --with-deps chromium
 
       - name: Run e2e tests (blocking smoke - Chromium only)
         env:
           CI: true
-        run: pnpm exec playwright test --workers=4 --grep-invert @nonblocking --project=chromium
+        run: pnpm exec playwright test --workers=1 --grep-invert @nonblocking --project=chromium
 
-      - name: Run e2e tests (non-blocking - Mobile Chrome)
+      - name: Run e2e tests (exploratory - Mobile Chrome)
         env:
           CI: true
-        run: pnpm exec playwright test --workers=4 --grep @nonblocking --project="Mobile Chrome"
+        run: pnpm exec playwright test --workers=1 --grep @nonblocking --project="Mobile Chrome"
         continue-on-error: true
+
+      - name: Upload Playwright report on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.run_attempt }}
+          path: |
+            playwright-report
+            test-results
+          if-no-files-found: ignore
+          retention-days: 7
 
       - name: Build (GitHub Pages)
         env:

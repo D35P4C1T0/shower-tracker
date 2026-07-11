@@ -5,6 +5,7 @@ import type { UserSettings } from '../../types'
 describe('NotificationService', () => {
   let mockNotification: any
   let mockRequestPermission: any
+  let mockShowNotification: any
 
   beforeEach(() => {
     vi.clearAllMocks()
@@ -23,6 +24,7 @@ describe('NotificationService', () => {
     
     // Setup request permission mock
     mockRequestPermission = vi.fn().mockResolvedValue('granted')
+    mockShowNotification = vi.fn().mockResolvedValue(undefined)
     
     // Set static properties
     mockNotification.permission = 'default'
@@ -39,7 +41,8 @@ describe('NotificationService', () => {
     Object.defineProperty(window.navigator, 'serviceWorker', {
       value: {
         ready: Promise.resolve({
-          getNotifications: vi.fn().mockResolvedValue([])
+          getNotifications: vi.fn().mockResolvedValue([]),
+          showNotification: mockShowNotification
         })
       },
       writable: true,
@@ -131,13 +134,14 @@ describe('NotificationService', () => {
       const result = await NotificationService.showNotification(options)
       
       expect(result).toBe(true)
-      expect(mockNotification).toHaveBeenCalledWith('Test Title', {
+      expect(mockShowNotification).toHaveBeenCalledWith('Test Title', {
         body: 'Test Body',
         icon: '/test-icon.png',
         badge: '/vite.svg',
         tag: 'shower-reminder',
         requireInteraction: false,
-        silent: false
+        silent: false,
+        data: { url: 'http://localhost:3000/' }
       })
     })
 
@@ -151,13 +155,14 @@ describe('NotificationService', () => {
       
       await NotificationService.showNotification(options)
       
-      expect(mockNotification).toHaveBeenCalledWith('Test Title', {
+      expect(mockShowNotification).toHaveBeenCalledWith('Test Title', {
         body: 'Test Body',
         icon: '/pwa-192x192.png',
         badge: '/pwa-64x64.png',
         tag: 'shower-reminder',
         requireInteraction: false,
-        silent: false
+        silent: false,
+        data: { url: 'http://localhost:3000/' }
       })
     })
 
@@ -172,7 +177,7 @@ describe('NotificationService', () => {
       const result = await NotificationService.showNotification(options)
       
       expect(result).toBe(false)
-      expect(mockNotification).not.toHaveBeenCalled()
+      expect(mockShowNotification).not.toHaveBeenCalled()
     })
 
     it('should return false when not supported', async () => {
