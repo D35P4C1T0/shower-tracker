@@ -15,6 +15,7 @@ import { DEFAULT_SETTINGS } from '@/lib/database-services/default-settings'
 import { formatAppVersion } from '@/lib/app-version'
 import { DatabaseService } from '@/lib/database-service'
 import { Github, User, Bell, BellOff, AlertCircle, Tag, Download, Upload } from 'lucide-react'
+import { cn } from '@/lib/utils'
 
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024
 
@@ -212,13 +213,18 @@ export function SettingsPage() {
     return <div className="app-fade-in"><SettingsSkeleton /></div>
   }
 
+  const settingRowClass = 'grid min-h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border/60 py-3 last:border-b-0'
+  const controlClass = 'min-w-0 shrink-0 justify-self-end'
+  const sectionClass = 'grid gap-1 border-b py-5 last:border-b-0 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-3'
+  const sectionBodyClass = 'min-w-0 space-y-1'
+
   return (
-    <div className="space-y-5 app-fade-in" data-testid="settings-page">
+    <div className="space-y-5 app-fade-in" data-testid="settings-page" data-layout="index">
       <Card className="app-fade-up app-fade-up-delay-1">
         <CardHeader className="pb-4">
           <CardTitle>Settings</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-8">
+        <CardContent className="space-y-1">
           {error && (
             <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
               {error}
@@ -226,26 +232,28 @@ export function SettingsPage() {
           )}
 
           {/* Theme Settings */}
-          <div className="space-y-4">
-            <Label className="text-lg font-semibold">Theme</Label>
-            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+          <div className={sectionClass}>
+            <Label className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Theme</Label>
+            <div className={sectionBodyClass}>
+            <div className={settingRowClass}>
               <div className="min-w-0 space-y-1">
                 <Label>Appearance</Label>
                 <p className="text-sm text-muted-foreground">
                   Choose your preferred theme
                 </p>
               </div>
-              <div className="justify-self-start sm:justify-self-end">
+              <div className={controlClass}>
                 <ThemeSwitcher />
               </div>
+            </div>
             </div>
           </div>
 
           {/* Calendar Settings */}
-          <div className="space-y-4">
-            <Label className="text-lg font-semibold">Calendar</Label>
-            <div className="space-y-5">
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+          <div className={sectionClass}>
+            <Label className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Calendar</Label>
+            <div className={sectionBodyClass}>
+              <div className={settingRowClass}>
                 <div className="min-w-0 space-y-1">
                   <Label htmlFor="first-day-of-week">First day of week</Label>
                   <p className="text-sm text-muted-foreground">
@@ -256,7 +264,7 @@ export function SettingsPage() {
                   value={settings.firstDayOfWeek.toString()}
                   onValueChange={handleFirstDayOfWeekChange}
                 >
-                  <SelectTrigger className="w-full sm:w-[110px]">
+                  <SelectTrigger className={cn(controlClass, 'w-28 sm:w-32')}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -269,9 +277,9 @@ export function SettingsPage() {
           </div>
 
           {/* Notification Settings */}
-          <div className="space-y-4">
-            <Label className="text-lg font-semibold">Notifications</Label>
-            <div className="space-y-5">
+          <div className={sectionClass}>
+            <Label className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Notifications</Label>
+            <div className={sectionBodyClass}>
               {/* Browser Support Check */}
               {!isSupported() && (
                 <div className="flex items-center gap-2 p-3 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md dark:text-amber-400 dark:bg-amber-950/20 dark:border-amber-800">
@@ -283,14 +291,14 @@ export function SettingsPage() {
               {/* Permission Status */}
               {isSupported() && (
                 <div className="space-y-2">
-                  <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                  <div className={settingRowClass}>
                     <div className="min-w-0 space-y-1">
                       <Label>Notification Permission</Label>
                       <p className="text-sm text-muted-foreground">
                         {getPermissionStatusMessage()}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 justify-self-start sm:justify-self-end">
+                    <div className={cn(controlClass, 'flex items-center justify-end gap-2')}>
                       {hasPermission ? (
                         <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
                           <Bell className="h-4 w-4" />
@@ -316,7 +324,7 @@ export function SettingsPage() {
 
                   {/* Test Notification Button */}
                   {hasPermission && (
-                    <div className="flex justify-start sm:justify-end">
+                    <div className="flex justify-start py-2 sm:justify-end">
                       <Button
                         onClick={handleTestNotification}
                         size="sm"
@@ -330,26 +338,30 @@ export function SettingsPage() {
               )}
 
               {/* Enable/Disable Toggle */}
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+              <div className={settingRowClass}>
                 <div className="min-w-0 space-y-1">
                   <Label htmlFor="notifications-enabled">Enable notifications</Label>
                   <p className="text-sm text-muted-foreground">
                     Get reminders while the app is open. Closed-app reminders require Web Push and are not available yet.
                   </p>
                 </div>
-                <Switch
-                  id="notifications-enabled"
-                  data-testid="notification-toggle"
-                  checked={settings.notificationsEnabled}
-                  onCheckedChange={handleNotificationsToggle}
-                  disabled={!isSupported() || (!hasPermission && !settings.notificationsEnabled)}
-                  className="justify-self-start sm:justify-self-end"
-                />
+                <div className={cn(controlClass, 'flex items-center justify-end gap-2')}>
+                  <span className="text-sm font-medium text-muted-foreground">
+                    {settings.notificationsEnabled ? 'On' : 'Off'}
+                  </span>
+                  <Switch
+                    id="notifications-enabled"
+                    data-testid="notification-toggle"
+                    checked={settings.notificationsEnabled}
+                    onCheckedChange={handleNotificationsToggle}
+                    disabled={!isSupported() || (!hasPermission && !settings.notificationsEnabled)}
+                  />
+                </div>
               </div>
 
               {/* Threshold Setting */}
               {settings.notificationsEnabled && (
-                <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
+                <div className={settingRowClass}>
                   <div className="min-w-0 space-y-1">
                     <Label htmlFor="notification-threshold">Reminder threshold (days)</Label>
                     <p className="text-sm text-muted-foreground">
@@ -364,7 +376,7 @@ export function SettingsPage() {
                     value={notificationThreshold}
                     onBlur={(e) => handleNotificationThresholdChange(e.target.value)}
                     onChange={(e) => setNotificationThreshold(e.target.value)}
-                    className="w-full sm:w-20"
+                    className={cn(controlClass, 'w-20 sm:w-24')}
                   />
                 </div>
               )}
