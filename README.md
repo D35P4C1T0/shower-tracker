@@ -1,150 +1,49 @@
-# 🚿 Shower Tracker
+# Shower Tracker
 
-A modern Progressive Web App (PWA) for tracking your shower habits and maintaining personal hygiene routines.
+A local-first PWA to log showers, review your history, and track personal goals. Data stays in your browser—no account or cloud sync.
 
-[![Deploy to GitHub Pages](https://github.com/D35P4C1T0/shower-tracker/actions/workflows/deploy-github-pages.yml/badge.svg)](https://github.com/D35P4C1T0/shower-tracker/actions/workflows/deploy-github-pages.yml)
-[![Tests](https://img.shields.io/badge/tests-185%20passing-brightgreen)](https://github.com/D35P4C1T0/shower-tracker)
-[![PWA](https://img.shields.io/badge/PWA-ready-blue)](https://web.dev/progressive-web-apps/)
+[Open the app](https://d35p4c1t0.github.io/shower-tracker/)
 
-## ✨ Features
+![Home, Calendar, and Settings shown side by side with sample shower history](docs/app-overview.png)
 
-### 🎯 Core Functionality
-- **One-tap shower recording** - Quick and easy shower logging
-- **Calendar view** - Visual history of your shower habits
-- **Time tracking** - See how long since your last shower
-- **Streak tracking** - Monitor your hygiene consistency
-- **Swipe navigation** - Move between pages with left/right swipes
+*Home, Calendar, and Settings with sample data.*
 
-### 📱 PWA Capabilities
-- **Installable** - Add to home screen on mobile and desktop
-- **Offline support** - Works without internet connection
-- **Active-app notifications** - Customizable reminders while the app is open
-- **Cross-platform** - Works on iOS, Android, and desktop
+- One-tap logging, calendar history, and shower frequency insights.
+- Weekly and monthly goals, light and dark themes.
+- Installable as a PWA with offline tracking. Reminders run only while the app is open.
+- JSON backup and restore in Settings. Export a backup before clearing browser data.
 
-### 🎨 User Experience
-- **Dark/Light themes** - Automatic system theme detection
-- **Responsive design** - Optimized for all screen sizes
-- **Accessibility** - Full keyboard navigation and screen reader support
-- **Fast loading** - Optimized performance with code splitting
+## Tech stack & engineering
 
-## 🚀 Live Demo
+- **React 19 + TypeScript:** shared hooks and a storage service layer keep UI and persistence separate.
+- **Tailwind CSS + Radix UI:** responsive layouts, light/dark themes, and reusable UI primitives.
+- **IndexedDB via Dexie:** on-device history and settings, a localStorage fallback, and JSON backup/restore. No backend means no automatic sync across devices.
+- **Vite + Workbox:** production builds, an installable PWA, and service worker caching for offline use.
+- **Vitest + Testing Library + Playwright:** unit, component, and browser tests. GitHub Actions requires lint, unit tests, and blocking Chromium checks before deploying to Pages.
 
-**GitHub Pages**: [https://d35p4c1t0.github.io/shower-tracker/](https://d35p4c1t0.github.io/shower-tracker/)
+Start with [the home page](src/pages/HomePage.tsx), [storage services](src/lib/database-services/), or [browser tests](e2e/).
 
-## 📱 Installation
+## Development
 
-### Mobile (iOS/Android)
-1. Visit the web app in your browser
-2. Look for "Add to Home Screen" prompt
-3. Follow the installation instructions
+Use Node.js 22.12+ and pnpm 10.
 
-### Desktop
-1. Visit the web app in Chrome/Edge
-2. Click the install icon in the address bar
-3. Confirm installation
-
-## 🛠️ Tech Stack
-
-- **Frontend**: React 19 + TypeScript
-- **Build Tool**: Vite 7
-- **Styling**: Tailwind CSS + Radix UI
-- **Database**: IndexedDB (via Dexie.js)
-- **PWA**: Workbox service worker
-- **Testing**: Vitest + Playwright
-- **Deployment**: GitHub Pages / Vercel
-
-## 🏗️ Development
-
-### Prerequisites
-- Node.js 20.11.1+
-- pnpm 10+ (recommended) or npm/yarn
-
-### Setup
 ```bash
-# Clone the repository
-git clone https://github.com/D35P4C1T0/shower-tracker.git
-cd shower-tracker
-
-# Install dependencies
 pnpm install
-
-# Start development server
-pnpm run dev
+pnpm dev
 ```
 
-### Available Scripts
 ```bash
-pnpm run dev          # Start development server
-pnpm run clean        # Remove generated build/test artifacts
-pnpm run build        # Build for production
-pnpm run build:github # Build for GitHub Pages
-pnpm run test         # Run unit tests
-pnpm run test:e2e     # Run end-to-end tests
-pnpm run lint         # Run ESLint
-pnpm run preview      # Preview production build
+pnpm test          # Unit tests
+pnpm test:e2e     # Playwright tests (install browsers first: pnpm exec playwright install)
+pnpm lint
+pnpm build        # Production build
+pnpm preview      # Serve the build locally
 ```
 
-### Testing
-```bash
-# Run all tests
-pnpm run test
+## Deployment
 
-# Test deployment readiness
-./scripts/test-deployment.sh
+GitHub Actions deploys to GitHub Pages on pushes to `main`. Use `pnpm build:github` for a Pages build, or `pnpm build` for other hosts. Output goes to `dist/`.
 
-# Run E2E tests (requires browser setup)
-pnpm run test:e2e
-```
+## License
 
-## 📊 Project Stats
-
-- **Automated unit and browser tests** - Coverage for components, hooks, storage, and core flows
-- **PWA compliant** - Meets all PWA requirements
-- **Accessibility ready** - WCAG 2.1 compliant
-
-## 🚀 Deployment
-
-### GitHub Pages (Automatic)
-1. Push to `main` branch
-2. Enable GitHub Pages in repository settings
-3. Set source to "GitHub Actions"
-4. Automatic deployment on every push
-
-### Vercel
-1. Connect your GitHub repository to Vercel
-2. Automatic deployment with zero configuration
-
-### Manual Build
-```bash
-pnpm run build:github  # For GitHub Pages
-pnpm run build         # For other platforms
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-### Development Guidelines
-- Write tests for new features
-- Follow TypeScript best practices
-- Ensure PWA compliance
-- Test on multiple devices/browsers
-
-## 📝 License
-
-This project is open source and available under the [MIT License](LICENSE).
-
-## 🙏 Acknowledgments
-
-- [Radix UI](https://www.radix-ui.com/) for accessible components
-- [Lucide](https://lucide.dev/) for beautiful icons
-- [Tailwind CSS](https://tailwindcss.com/) for utility-first styling
-- [Workbox](https://developers.google.com/web/tools/workbox) for PWA capabilities
-
----
-
-**Made with ❤️ for better hygiene habits**
+[MIT](LICENSE)
