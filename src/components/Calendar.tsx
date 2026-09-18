@@ -87,7 +87,7 @@ function CalendarGrid({
         {calendarGrid.map((date, index) => (
           <div
             key={date ? date.toISOString() : `empty-${index}`}
-            className={cn('relative min-h-0 p-1', date && 'cursor-pointer')}
+            className={cn('relative min-h-0 min-w-0', date && 'cursor-pointer')}
           >
             {date && (
               <button
@@ -477,7 +477,7 @@ export function Calendar({ onDayClick, onTodaySelected, refreshTrigger = 0 }: Ca
                 variant="outline"
                 size="sm"
                 onClick={goToToday}
-                className="px-2 text-xs sm:px-3"
+                className="h-10 px-2 text-xs sm:px-3"
               >
                 Today
               </Button>
@@ -486,7 +486,7 @@ export function Calendar({ onDayClick, onTodaySelected, refreshTrigger = 0 }: Ca
                 size="sm"
                 onClick={goToPreviousMonth}
                 aria-label="Previous month"
-                className="px-2 sm:px-3"
+                className="h-10 w-9 px-0 sm:w-10"
                 data-testid="prev-month"
               >
                 <ChevronLeft className="h-4 w-4" />
@@ -496,7 +496,7 @@ export function Calendar({ onDayClick, onTodaySelected, refreshTrigger = 0 }: Ca
                 size="sm"
                 onClick={goToNextMonth}
                 aria-label="Next month"
-                className="px-2 sm:px-3"
+                className="h-10 w-9 px-0 sm:w-10"
                 data-testid="next-month"
               >
                 <ChevronRight className="h-4 w-4" />

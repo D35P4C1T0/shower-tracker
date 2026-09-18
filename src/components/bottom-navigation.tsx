@@ -39,8 +39,8 @@ export function BottomNavigation({ currentPage, onNavigate }: BottomNavigationPr
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-background border-t border-border pb-[env(safe-area-inset-bottom)] app-fade-in">
-      <div className="flex items-center justify-around h-16 max-w-md mx-auto px-4">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur border-t border-border pb-[env(safe-area-inset-bottom)] app-fade-in">
+      <div className="flex items-center justify-around h-16 gap-2 max-w-md mx-auto px-4">
         {navItems.map((item) => {
           const Icon = item.icon
           const isActive = currentPage === item.id
@@ -56,8 +56,8 @@ export function BottomNavigation({ currentPage, onNavigate }: BottomNavigationPr
                 "flex touch-manipulation select-none flex-col items-center justify-center gap-1 rounded-lg px-3 py-2 transition-colors duration-150 ease-out motion-reduce:transition-none",
                 "min-w-0 flex-1 text-xs font-medium [-webkit-tap-highlight-color:transparent]",
                 isActive
-                  ? "text-primary bg-primary/10 shadow-sm"
-                  : "text-muted-foreground active:bg-primary/10 active:text-primary"
+                  ? "text-primary bg-primary/10"
+                  : "text-muted-foreground hover:bg-muted active:bg-primary/10 active:text-primary"
               )}
               aria-label={item.label}
             >

@@ -107,7 +107,7 @@ export function HomePage() {
       <ShowerInsights showers={showers} />
 
       <Button
-        className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-[max(1rem,calc((100vw-28rem)/2+1rem))] z-40 h-14 w-14 rounded-lg shadow-lg"
+        className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom))] right-[max(1rem,calc((100vw-28rem)/2+1rem))] z-40 h-14 w-14 rounded-2xl shadow-lg"
         size="icon"
         onClick={handleRecordShower}
         disabled={isRecording}

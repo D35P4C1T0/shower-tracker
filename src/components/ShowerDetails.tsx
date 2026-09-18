@@ -227,7 +227,7 @@ export function ShowerDetails({ date, showers, onClose, onShowersChanged }: Show
           {onClose && (
             <button
               onClick={onClose}
-              className="text-muted-foreground hover:text-foreground transition-colors"
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
               aria-label="Close details"
               data-testid="close-modal"
             >
@@ -246,7 +246,7 @@ export function ShowerDetails({ date, showers, onClose, onShowersChanged }: Show
               onClick={handleAddShower}
               disabled={isSavingTime || isSelectedDateInFuture}
               aria-label="Add shower"
-              className="h-8 w-8"
+              className="h-10 w-10"
               data-testid="add-shower-for-day"
             >
               <Plus className="h-4 w-4" />
@@ -281,7 +281,7 @@ export function ShowerDetails({ date, showers, onClose, onShowersChanged }: Show
                           {formatTime(new Date(shower.timestamp))}
                         </div>
                         {shower.notes && (
-                          <div className="text-sm text-muted-foreground">
+                          <div className="break-words text-sm text-muted-foreground">
                             {shower.notes}
                           </div>
                         )}
@@ -309,7 +309,7 @@ export function ShowerDetails({ date, showers, onClose, onShowersChanged }: Show
                 onClick={handleAddShower}
                 disabled={isSavingTime || isSelectedDateInFuture}
                 aria-label="Add shower"
-                className="h-8 w-8"
+                className="h-10 w-10"
                 data-testid="add-shower-for-day"
               >
                 <Plus className="h-4 w-4" />
@@ -321,7 +321,7 @@ export function ShowerDetails({ date, showers, onClose, onShowersChanged }: Show
 
       <Dialog open={!!showerToEdit || !!draftShowerTimestamp} onOpenChange={(open) => !open && handleCancelEditTime()}>
         <DialogContent
-          className="w-[calc(100vw-0.75rem)] max-w-sm gap-3 p-4"
+          className="w-[calc(100vw-2rem)] max-w-sm gap-3 p-4"
           data-testid="edit-time-dialog"
         >
           <DialogHeader className="space-y-0 text-left">

@@ -213,8 +213,8 @@ export function SettingsPage() {
     return <div className="app-fade-in"><SettingsSkeleton /></div>
   }
 
-  const settingRowClass = 'grid min-h-16 grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-b border-border/60 py-3 last:border-b-0'
-  const controlClass = 'min-w-0 shrink-0 justify-self-end'
+  const settingRowClass = 'grid min-h-16 grid-cols-1 items-center gap-3 min-[400px]:grid-cols-[minmax(0,1fr)_auto] border-b border-border/60 py-3 last:border-b-0'
+  const controlClass = 'min-w-0 shrink-0 justify-self-start min-[400px]:justify-self-end'
   const sectionClass = 'grid gap-1 border-b py-5 last:border-b-0 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-3'
   const sectionBodyClass = 'min-w-0 space-y-1'
 
@@ -264,7 +264,7 @@ export function SettingsPage() {
                   value={settings.firstDayOfWeek.toString()}
                   onValueChange={handleFirstDayOfWeekChange}
                 >
-                  <SelectTrigger className={cn(controlClass, 'w-28 sm:w-32')}>
+                  <SelectTrigger id="first-day-of-week" className={cn(controlClass, 'w-28 sm:w-32')}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -416,7 +416,7 @@ export function SettingsPage() {
           <CardTitle className="text-lg font-semibold">App Information</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="flex items-center justify-between py-2 border-b border-border/50">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2 border-b border-border/50">
             <div className="flex items-center gap-2 text-sm">
               <Github className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Repository</span>
@@ -425,13 +425,13 @@ export function SettingsPage() {
               href={repoUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-primary hover:underline font-mono text-right"
+              className="text-sm text-primary hover:underline font-mono break-all text-right"
             >
               {repoDisplay}
             </a>
           </div>
           
-          <div className="flex items-center justify-between py-2 border-b border-border/50">
+          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2 border-b border-border/50">
             <div className="flex items-center gap-2 text-sm">
               <User className="h-4 w-4 text-muted-foreground" />
               <span className="text-muted-foreground">Creator</span>
@@ -440,7 +440,7 @@ export function SettingsPage() {
               href={authorProfileUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-sm text-primary hover:underline font-mono text-right"
+              className="text-sm text-primary hover:underline font-mono break-all text-right"
             >
               {authorHandle}
             </a>
