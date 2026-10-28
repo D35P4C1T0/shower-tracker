@@ -295,15 +295,15 @@ class PWAService {
   }
 
   /**
-   * Clear all caches (for development/testing)
+   * Clear the manually populated app data cache (for development/testing)
    */
   async clearCaches(): Promise<void> {
     if ('caches' in window) {
       const cacheNames = await caches.keys();
       await Promise.all(
-        cacheNames.map(cacheName => caches.delete(cacheName))
+        cacheNames.filter(cacheName => cacheName === 'shower-tracker-data-v1').map(cacheName => caches.delete(cacheName))
       );
-      console.log('All caches cleared');
+      console.log('App data cache cleared');
     }
   }
 
@@ -319,7 +319,6 @@ class PWAService {
       newWorker.postMessage({ type: 'SKIP_WAITING' });
     }
 
-    await this.clearCaches();
     await this.registration?.update();
 
     const url = new URL(window.location.href);

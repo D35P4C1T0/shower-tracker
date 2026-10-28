@@ -25,13 +25,13 @@ export const mockSettings = {
 // Custom render function with providers
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
   return (
-    <ThemeProvider defaultTheme="light" storageKey="test-theme">
+    <AppProvider>
       <ToastProvider>
-        <AppProvider>
+        <ThemeProvider>
           {children}
-        </AppProvider>
+        </ThemeProvider>
       </ToastProvider>
-    </ThemeProvider>
+    </AppProvider>
   )
 }
 

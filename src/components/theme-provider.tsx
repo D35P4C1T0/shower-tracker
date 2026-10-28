@@ -1,62 +1,33 @@
-import React, { createContext, useContext, useEffect, useState } from 'react'
+import { createContext, useContext, useEffect, type ReactNode } from 'react'
 import type { Theme } from '@/types'
-
-type ThemeProviderProps = {
-  children: React.ReactNode
-  defaultTheme?: Theme
-  storageKey?: string
-}
+import { useSettings } from '@/hooks/useSettings'
 
 type ThemeProviderState = {
   theme: Theme
-  setTheme: (theme: Theme) => void
+  setTheme: (theme: Theme) => Promise<void>
 }
 
-const initialState: ThemeProviderState = {
-  theme: 'system',
-  setTheme: () => null,
-}
+const ThemeProviderContext = createContext<ThemeProviderState | undefined>(undefined)
 
-const ThemeProviderContext = createContext<ThemeProviderState>(initialState)
-
-export function ThemeProvider({
-  children,
-  defaultTheme = 'system',
-  storageKey = 'shower-tracker-theme',
-  ...props
-}: ThemeProviderProps) {
-  const [theme, setTheme] = useState<Theme>(
-    () => (localStorage.getItem(storageKey) as Theme) || defaultTheme
-  )
+export function ThemeProvider({ children }: { children: ReactNode }) {
+  const { settings, updateTheme } = useSettings()
+  const theme = settings.theme
 
   useEffect(() => {
     const root = window.document.documentElement
-
-    root.classList.remove('light', 'dark')
-
-    if (theme === 'system') {
-      // Check if matchMedia is available (not available in test environment)
-      const systemTheme = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-        ? 'dark'
-        : 'light'
-
-      root.classList.add(systemTheme)
-      return
+    const media = window.matchMedia?.('(prefers-color-scheme: dark)')
+    const applyTheme = () => {
+      root.classList.remove('light', 'dark')
+      root.classList.add(theme === 'system' ? media?.matches ? 'dark' : 'light' : theme)
     }
-
-    root.classList.add(theme)
+    applyTheme()
+    if (theme !== 'system') return
+    media?.addEventListener('change', applyTheme)
+    return () => media?.removeEventListener('change', applyTheme)
   }, [theme])
 
-  const value = {
-    theme,
-    setTheme: (theme: Theme) => {
-      localStorage.setItem(storageKey, theme)
-      setTheme(theme)
-    },
-  }
-
   return (
-    <ThemeProviderContext.Provider {...props} value={value}>
+    <ThemeProviderContext.Provider value={{ theme, setTheme: updateTheme }}>
       {children}
     </ThemeProviderContext.Provider>
   )
@@ -64,9 +35,6 @@ export function ThemeProvider({
 
 export const useTheme = () => {
   const context = useContext(ThemeProviderContext)
-
-  if (context === undefined)
-    throw new Error('useTheme must be used within a ThemeProvider')
-
+  if (context === undefined) throw new Error('useTheme must be used within a ThemeProvider')
   return context
 }

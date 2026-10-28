@@ -2,11 +2,13 @@ import {
   FallbackShowerService,
   FallbackSettingsService,
   FallbackMetadataService,
-  StorageChecker
+  StorageChecker,
+  replaceFallbackData
 } from '../storage-fallback';
 import type { UserSettings } from '../../types';
 
 import { vi } from 'vitest';
+import { DEFAULT_SETTINGS } from '../database-services/default-settings';
 
 // Mock localStorage
 const localStorageMock = (() => {
@@ -38,6 +40,20 @@ Object.defineProperty(window, 'indexedDB', {
   },
 });
 
+beforeEach(() => {
+  let queue = Promise.resolve();
+  Object.defineProperty(navigator, 'locks', {
+    configurable: true,
+    value: {
+      request: vi.fn((_name: string, operation: () => Promise<unknown>) => {
+        const result = queue.then(operation);
+        queue = result.then(() => undefined, () => undefined);
+        return result;
+      })
+    }
+  });
+});
+
 describe('StorageChecker', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -49,14 +65,11 @@ describe('StorageChecker', () => {
   });
 
   it('detects when localStorage is not available', () => {
-    const originalSetItem = localStorage.setItem;
-    localStorage.setItem = vi.fn(() => {
+    const read = vi.spyOn(localStorage, 'getItem').mockImplementationOnce(() => {
       throw new Error('localStorage not available');
     });
-
     expect(StorageChecker.isLocalStorageAvailable()).toBe(false);
-
-    localStorage.setItem = originalSetItem;
+    read.mockRestore();
   });
 
   it('returns correct storage type when localStorage is available', async () => {
@@ -326,5 +339,87 @@ describe('FallbackMetadataService', () => {
     
     const value = await FallbackMetadataService.getMetadata('testKey');
     expect(value).toBeNull();
+  });
+});
+
+describe('fallback storage safety', () => {
+  beforeEach(() => localStorageMock.clear());
+
+  it('keeps all overlapping additions and metadata updates', async () => {
+    await Promise.all([
+      FallbackShowerService.addShower(new Date('2024-01-01')),
+      FallbackShowerService.addShower(new Date('2024-01-02')),
+      FallbackMetadataService.setMetadata('a', '1'),
+      FallbackMetadataService.setMetadata('b', '2'),
+    ]);
+    expect(await FallbackShowerService.getAllShowers()).toHaveLength(2);
+    expect(await FallbackMetadataService.getAllMetadata()).toEqual({ a: '1', b: '2' });
+    expect(navigator.locks.request).toHaveBeenCalledWith('shower-tracker-storage', expect.any(Function));
+  });
+
+  it('keeps the selected fallback store when IndexedDB becomes available again', async () => {
+    await FallbackShowerService.addShower(new Date('2024-01-01'));
+    const available = vi.spyOn(StorageChecker, 'isIndexedDBAvailable').mockResolvedValue(true);
+    try {
+      expect(await StorageChecker.getAvailableStorage()).toBe('localstorage');
+      expect(available).not.toHaveBeenCalled();
+    } finally { available.mockRestore(); }
+  });
+
+  it('reads existing history even when writes are full', async () => {
+    await FallbackShowerService.addShower(new Date('2024-01-01'));
+    const write = vi.spyOn(localStorage, 'setItem').mockImplementation(() => { throw new Error('quota'); });
+    try {
+      expect(StorageChecker.isLocalStorageAvailable()).toBe(true);
+      expect(await FallbackShowerService.getAllShowers()).toHaveLength(1);
+      await expect(FallbackShowerService.addShower()).rejects.toThrow('Failed to save');
+      expect(await FallbackShowerService.getAllShowers()).toHaveLength(1);
+    } finally { write.mockRestore(); }
+  });
+
+  it('orders edited and legacy history newest first', async () => {
+    localStorageMock.setItem('shower-tracker-showers', JSON.stringify([
+      { id: 'old', timestamp: '2024-01-01' },
+      { id: 'new', timestamp: '2024-01-02' }
+    ]));
+    expect((await FallbackShowerService.getLastShower())?.id).toBe('new');
+    await FallbackShowerService.updateShower('new', { timestamp: new Date('2023-12-31') });
+    expect((await FallbackShowerService.getLastShower())?.id).toBe('old');
+    expect(localStorageMock.getItem('shower-tracker-showers')).toBeNull();
+  });
+
+  it('replaces all fallback data with one write and preserves it if that write fails', async () => {
+    await FallbackShowerService.addShower(new Date('2024-01-01'));
+    await FallbackSettingsService.saveSettings({ ...DEFAULT_SETTINGS, theme: 'dark' });
+    await FallbackMetadataService.setMetadata('old', 'keep');
+    const data = { showers: [{ timestamp: new Date('2024-02-01') }], settings: DEFAULT_SETTINGS, metadata: { new: 'value' } };
+    const write = vi.spyOn(localStorage, 'setItem').mockImplementation(() => { throw new Error('quota'); });
+    try {
+      await expect(replaceFallbackData(data)).rejects.toThrow('quota');
+      expect((await FallbackShowerService.getLastShower())?.timestamp).toEqual(new Date('2024-01-01'));
+      expect((await FallbackSettingsService.getSettings()).theme).toBe('dark');
+      expect(await FallbackMetadataService.getAllMetadata()).toEqual({ old: 'keep' });
+    } finally { write.mockRestore(); }
+    const commit = vi.spyOn(localStorage, 'setItem');
+    try {
+      await replaceFallbackData(data);
+      expect(commit).toHaveBeenCalledTimes(1);
+    } finally { commit.mockRestore(); }
+    expect((await FallbackShowerService.getLastShower())?.timestamp).toEqual(new Date('2024-02-01'));
+    expect((await FallbackSettingsService.getSettings()).theme).toBe('system');
+    expect(await FallbackMetadataService.getAllMetadata()).toEqual({ new: 'value' });
+  });
+
+  it('preserves a corrupt snapshot instead of replacing it with empty history', async () => {
+    localStorageMock.setItem('shower-tracker-data-v1', 'null');
+    await expect(FallbackShowerService.addShower()).rejects.toThrow('Stored data is corrupt');
+    expect(localStorageMock.getItem('shower-tracker-data-v1')).toBe('null');
+  });
+
+  it('refuses unsafe writes when browser locks are unavailable but keeps reads working', async () => {
+    await FallbackShowerService.addShower(new Date('2024-01-01'));
+    Object.defineProperty(navigator, 'locks', { configurable: true, value: undefined });
+    await expect(FallbackShowerService.addShower()).rejects.toThrow('browser locks');
+    expect(await FallbackShowerService.getAllShowers()).toHaveLength(1);
   });
 });

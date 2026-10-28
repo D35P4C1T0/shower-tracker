@@ -8,8 +8,19 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { useTheme } from "@/components/theme-provider"
 
+import { useToast } from '@/components/toast'
+import type { Theme } from '@/types'
+
 export function ThemeSwitcher() {
   const { setTheme } = useTheme()
+  const { error } = useToast()
+  const changeTheme = async (theme: Theme) => {
+    try {
+      await setTheme(theme)
+    } catch {
+      error('Failed to save theme', 'Please try again.')
+    }
+  }
 
   return (
     <DropdownMenu>
@@ -21,15 +32,15 @@ export function ThemeSwitcher() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
+        <DropdownMenuItem onClick={() => changeTheme("light")}>
           <Sun className="mr-2 h-4 w-4" />
           <span>Light</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
+        <DropdownMenuItem onClick={() => changeTheme("dark")}>
           <Moon className="mr-2 h-4 w-4" />
           <span>Dark</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
+        <DropdownMenuItem onClick={() => changeTheme("system")}>
           <Monitor className="mr-2 h-4 w-4" />
           <span>System</span>
         </DropdownMenuItem>

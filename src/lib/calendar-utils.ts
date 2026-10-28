@@ -136,3 +136,8 @@ export function getDayNames(firstDayOfWeek: 0 | 1 = 0): string[] {
   
   return dayNames;
 }
+
+// Calendar days can be 23 or 25 hours when the clocks change.
+export function getCalendarDayNumber(date: Date): number {
+  return Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()) / 86_400_000;
+}

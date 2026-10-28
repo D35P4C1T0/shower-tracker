@@ -71,7 +71,7 @@ describe('PWAService', () => {
       match: vi.fn().mockResolvedValue(undefined),
       delete: vi.fn().mockResolvedValue(true)
     });
-    mockCachesKeys = vi.fn().mockResolvedValue(['cache1', 'cache2']);
+    mockCachesKeys = vi.fn().mockResolvedValue(['cache1', 'shower-tracker-data-v1', 'workbox-precache-other-app']);
     mockCachesDelete = vi.fn().mockResolvedValue(true);
 
     Object.defineProperty(window, 'caches', {
@@ -245,13 +245,12 @@ describe('PWAService', () => {
   });
 
   describe('clearCaches', () => {
-    it('should clear all caches', async () => {
+    it('clears only its own manually populated cache', async () => {
       await pwaService.clearCaches();
 
       expect(mockCachesKeys).toHaveBeenCalled();
-      expect(mockCachesDelete).toHaveBeenCalledTimes(2);
-      expect(mockCachesDelete).toHaveBeenCalledWith('cache1');
-      expect(mockCachesDelete).toHaveBeenCalledWith('cache2');
+      expect(mockCachesDelete).toHaveBeenCalledTimes(1);
+      expect(mockCachesDelete).toHaveBeenCalledWith('shower-tracker-data-v1');
     });
   });
 
@@ -278,6 +277,23 @@ describe('PWAService', () => {
         currentBuildId: CURRENT_BUILD_ID,
         latestBuildId: `${CURRENT_APP_VERSION}-new-commit`
       }));
+    });
+
+    it('prompts for a new version and updates without deleting caches', async () => {
+      const updateCallback = vi.fn();
+      await pwaService.registerServiceWorker();
+      pwaService.onUpdateAvailable(updateCallback);
+      updateCallback.mockClear();
+      vi.mocked(fetch).mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ version: '1.3.5', buildId: '1.3.5-new-commit' })
+      } as Response);
+      expect(await pwaService.checkForUpdates()).toBe(true);
+      const update = updateCallback.mock.calls[0][0];
+      expect(update.latestVersion).toBe('1.3.5');
+      await update.updateServiceWorker();
+      expect(mockCachesDelete).not.toHaveBeenCalled();
+      expect(window.location.replace).toHaveBeenCalledWith(expect.stringContaining('app-version=1.3.5-new-commit'));
     });
 
     it('should return false when current build matches deployed build', async () => {

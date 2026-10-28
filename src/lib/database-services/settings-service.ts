@@ -12,8 +12,12 @@ function readLegacyGoalTarget(key: string): number | undefined {
     return undefined;
   }
 
-  const value = Number(window.localStorage.getItem(key));
-  return Number.isFinite(value) && value > 0 ? value : undefined;
+  try {
+    const value = Number(window.localStorage.getItem(key));
+    return Number.isFinite(value) && value > 0 ? value : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function settingsFromDB(settings: DBUserSettings): UserSettings {
@@ -61,6 +65,23 @@ function defaultSettingsWithLegacyGoals(): UserSettings {
 }
 
 export class SettingsService {
+  static async migrateLegacyTheme(): Promise<void> {
+    let theme: string | null;
+    try {
+      theme = localStorage.getItem('shower-tracker-theme');
+    } catch {
+      return;
+    }
+    if (theme !== 'light' && theme !== 'dark' && theme !== 'system') return;
+    try {
+      await this.updateSetting('theme', theme);
+      localStorage.removeItem('shower-tracker-theme');
+    } catch (error) {
+      // Keep the old key for a later attempt without blocking access to history.
+      console.warn('Could not migrate the legacy theme:', error);
+    }
+  }
+
   static async getSettings(): Promise<UserSettings> {
     return await runStorageOperation({
       indexedDB: async () => {

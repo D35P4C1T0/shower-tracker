@@ -1,5 +1,5 @@
 import { db } from '../database';
-import { StorageChecker } from '../storage-fallback';
+import { replaceFallbackData, StorageChecker } from '../storage-fallback';
 import type { ShowerEntry, UserSettings } from '../../types';
 import { validateShowerNotes, validateShowerTimestamp } from '../shower-validation';
 import { DEFAULT_SETTINGS, normalizeProjectInfo, normalizeShowerGoals } from './default-settings';
@@ -149,6 +149,7 @@ export class DatabaseService {
         throw new Error('No storage options available');
       }
     }
+    await SettingsService.migrateLegacyTheme();
   }
 
   static getStorageType(): StorageType | null {
@@ -186,34 +187,24 @@ export class DatabaseService {
 
   static async importData(source: string | unknown): Promise<ImportResult> {
     const data = normalizeImportData(source);
-    const previousData = await this.exportData();
-
-    try {
-      await this.replaceAllData(data);
-    } catch (error) {
-      try {
-        await this.replaceAllData(normalizeImportData(previousData));
-      } catch (rollbackError) {
-        console.error('Import rollback failed:', rollbackError);
-        throw new Error('Import failed and automatic rollback failed. Use your pre-import export to recover.');
-      }
-      throw error;
+    if (getStorageType() === 'indexeddb') {
+      await db.transaction('rw', db.showers, db.settings, db.metadata, async () => {
+        await this.clearAllData();
+        await SettingsService.saveSettings(data.settings);
+        await db.showers.bulkAdd(data.showers);
+        await db.metadata.bulkAdd(Object.entries(data.metadata).map(([key, value]) => ({
+          key, value, updatedAt: new Date()
+        })));
+      });
+    } else if (getStorageType() === 'localstorage') {
+      await replaceFallbackData(data);
+    } else {
+      throw new Error('No storage available');
     }
 
     return {
       showersImported: data.showers.length,
       metadataImported: Object.keys(data.metadata).length
     };
-  }
-
-  private static async replaceAllData(data: ReturnType<typeof normalizeImportData>): Promise<void> {
-    await this.clearAllData();
-    await SettingsService.saveSettings(data.settings);
-    for (const shower of data.showers) {
-      await ShowerService.addShower(shower.timestamp, shower.notes);
-    }
-    for (const [key, value] of Object.entries(data.metadata)) {
-      await MetadataService.setMetadata(key, value);
-    }
   }
 }

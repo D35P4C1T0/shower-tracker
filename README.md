@@ -12,6 +12,7 @@ A local-first PWA to log showers, review your history, and track personal goals.
 - Weekly and monthly goals, light and dark themes.
 - Installable as a PWA with offline tracking. Reminders run only while the app is open.
 - JSON backup and restore in Settings. Export a backup before clearing browser data.
+- If IndexedDB is unavailable, fallback writes require browser Web Locks support. Older browsers can still read and export saved fallback history.
 
 ## Tech stack & engineering
 
