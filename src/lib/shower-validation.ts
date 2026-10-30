@@ -15,6 +15,9 @@ export function validateShowerTimestamp(timestamp: Date, now: Date = new Date())
 }
 
 export function validateShowerNotes(notes?: string): void {
+  if (notes !== undefined && typeof notes !== 'string') {
+    throw new Error('Notes must be a string');
+  }
   if (notes !== undefined && notes.length > VALIDATION_CONSTANTS.MAX_NOTES_LENGTH) {
     throw new Error(`Notes exceed maximum length of ${VALIDATION_CONSTANTS.MAX_NOTES_LENGTH} characters`);
   }

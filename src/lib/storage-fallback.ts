@@ -148,11 +148,17 @@ export class FallbackShowerService {
 
     try {
       const showers = JSON.parse(data) as ShowerEntry[];
-      // Ensure timestamps are Date objects
-      return showers.map(shower => ({
-        ...shower,
-        timestamp: new Date(shower.timestamp)
-      })).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      if (!Array.isArray(showers)) throw new Error('Invalid shower list');
+      return showers.map(shower => {
+        if (!shower || typeof shower.id !== 'string' || !shower.id ||
+            (typeof shower.timestamp !== 'string' && typeof shower.timestamp !== 'number')) {
+          throw new Error('Invalid stored shower');
+        }
+        const timestamp = new Date(shower.timestamp);
+        if (!Number.isFinite(timestamp.getTime())) throw new Error('Invalid stored timestamp');
+        validateShowerNotes(shower.notes);
+        return { ...shower, timestamp };
+      }).sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
     } catch (error) {
       console.warn('Failed to parse shower data:', error);
       safeSetItem(CORRUPT_SHOWERS_KEY, data);

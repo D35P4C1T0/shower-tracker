@@ -79,10 +79,14 @@ function normalizeShowers(value: unknown): Array<{ timestamp: Date; notes?: stri
       throw new Error(`Shower entry ${index + 1} is invalid`);
     }
 
-    const timestamp = new Date(item.timestamp as string | number | Date);
+    if (typeof item.timestamp !== 'string' && typeof item.timestamp !== 'number' &&
+        !(item.timestamp instanceof Date)) {
+      throw new Error(`Shower entry ${index + 1} has an invalid timestamp`);
+    }
+    const timestamp = new Date(item.timestamp);
     validateShowerTimestamp(timestamp);
 
-    const notes = item.notes === undefined ? undefined : String(item.notes);
+    const notes = item.notes as string | undefined;
     validateShowerNotes(notes);
 
     return { timestamp, notes };

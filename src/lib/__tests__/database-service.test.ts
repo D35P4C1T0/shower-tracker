@@ -470,6 +470,22 @@ describe('DatabaseService', () => {
       expect(showers[0].notes).toBe('Keep me');
     });
 
+    it.each([null, true, [], {}])('rejects malformed import timestamps (%j) without losing history', async (timestamp) => {
+      await ShowerService.addShower(new Date('2024-01-01'), 'Keep me');
+      await expect(DatabaseService.importData({
+        schemaVersion: 1, showers: [{ timestamp }]
+      })).rejects.toThrow('invalid timestamp');
+      expect((await ShowerService.getAllShowers())[0].notes).toBe('Keep me');
+    });
+
+    it('rejects non-string imported notes without losing history', async () => {
+      await ShowerService.addShower(new Date('2024-01-01'), 'Keep me');
+      await expect(DatabaseService.importData({
+        schemaVersion: 1, showers: [{ timestamp: '2024-01-02', notes: {} }]
+      })).rejects.toThrow('Notes must be a string');
+      expect((await ShowerService.getAllShowers())[0].notes).toBe('Keep me');
+    });
+
     it('rolls back every table when an import write fails', async () => {
       await ShowerService.addShower(new Date('2024-01-01'), 'Keep me');
       await SettingsService.saveSettings({ ...DEFAULT_SETTINGS, theme: 'dark' });

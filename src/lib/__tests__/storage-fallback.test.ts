@@ -179,6 +179,19 @@ describe('FallbackShowerService', () => {
     expect(await FallbackShowerService.getAllShowers()).toEqual([]);
   });
 
+  it.each([
+    '{}',
+    '[{"id":"1","timestamp":null}]',
+    '[{"id":"1","timestamp":"invalid"}]',
+    '[{"timestamp":"2024-01-01"}]',
+    '[{"id":"1","timestamp":"2024-01-01","notes":{}}]'
+  ])('preserves malformed stored entries and blocks writes: %s', async (data) => {
+    localStorageMock.setItem('shower-tracker-showers', data);
+    await expect(FallbackShowerService.addShower()).rejects.toThrow('recovery copy was preserved');
+    expect(FallbackShowerService.getCorruptDataBackup()).toBe(data);
+    expect(localStorageMock.getItem('shower-tracker-showers')).toBe(data);
+  });
+
   it('handles corrupted data gracefully', async () => {
     localStorageMock.setItem('shower-tracker-showers', 'invalid json');
     
