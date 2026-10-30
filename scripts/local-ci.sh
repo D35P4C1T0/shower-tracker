@@ -8,13 +8,13 @@ pnpm install --frozen-lockfile
 
 echo "[local-ci] Installing Playwright browsers"
 # Avoid installing OS deps on non-Debian systems
-pnpm exec playwright install chromium firefox || true
+pnpm exec playwright install chromium firefox webkit
 
 echo "[local-ci] Running unit tests"
 pnpm run test
 
 echo "[local-ci] Running e2e tests (CI mode)"
-CI=true pnpm run test:e2e --workers=4
+CI=true pnpm run test:e2e:all
 
 echo "[local-ci] Building for GitHub Pages"
 GITHUB_PAGES=true pnpm run build:github

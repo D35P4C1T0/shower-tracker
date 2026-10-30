@@ -2,6 +2,9 @@
 import { defineConfig } from 'vitest/config'
 import path from 'path'
 
+// Exercise calendar calculations across daylight-saving changes in every test run.
+process.env.TZ = 'Europe/Rome'
+
 export default defineConfig({
   resolve: {
     alias: {

@@ -14,13 +14,13 @@ logWebVitals();
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <ErrorBoundary>
-        <ThemeProvider defaultTheme="system" storageKey="shower-tracker-theme">
-          <AppProvider>
+        <AppProvider>
+          <ThemeProvider>
             <PWAProvider>
               <App />
             </PWAProvider>
-          </AppProvider>
-        </ThemeProvider>
+          </ThemeProvider>
+        </AppProvider>
     </ErrorBoundary>
   </StrictMode>,
 )

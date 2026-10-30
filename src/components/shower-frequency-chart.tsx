@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { getCalendarDayNumber } from '@/lib/calendar-utils';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -51,7 +52,9 @@ export function getLast30DaysShowerFrequency(showers: ShowerEntry[], today = new
 
   const countsByDate = new Map(days.map((day) => [getLocalDateKey(day.date), day]));
   const firstDay = days[0].date.getTime();
-  const lastDay = days[days.length - 1].date.getTime() + 24 * 60 * 60 * 1000;
+  const tomorrow = new Date(startOfToday);
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const lastDay = tomorrow.getTime();
 
   showers.forEach((shower) => {
     const showerDate = new Date(shower.timestamp);
@@ -121,11 +124,7 @@ function getDaysSinceLastShower(showers: ShowerEntry[], today = new Date()): num
     return null;
   }
 
-  const startOfToday = new Date(today);
-  startOfToday.setHours(0, 0, 0, 0);
-  const startOfLastShowerDay = new Date(newestShower);
-  startOfLastShowerDay.setHours(0, 0, 0, 0);
-  const days = Math.floor((startOfToday.getTime() - startOfLastShowerDay.getTime()) / (24 * 60 * 60 * 1000));
+  const days = getCalendarDayNumber(today) - getCalendarDayNumber(newestShower);
   return Math.min(7, Math.max(0, days));
 }
 

@@ -1,6 +1,6 @@
 import type { ShowerEntry } from '@/types'
 
-const DAY_MS = 86_400_000
+import { getCalendarDayNumber } from './calendar-utils'
 
 export interface ShowerInsights {
   averageIntervalDays: number | null
@@ -15,13 +15,9 @@ export function calculateShowerInsights(showers: ShowerEntry[], now = new Date()
     .filter(date => Number.isFinite(date.getTime()))
     .sort((a, b) => a.getTime() - b.getTime())
 
-  const uniqueDays = [...new Set(dates.map(date => {
-    const day = new Date(date)
-    day.setHours(0, 0, 0, 0)
-    return day.getTime()
-  }))]
+  const uniqueDays = [...new Set(dates.map(getCalendarDayNumber))]
 
-  const intervals = uniqueDays.slice(1).map((day, index) => (day - uniqueDays[index]) / DAY_MS)
+  const intervals = uniqueDays.slice(1).map((day, index) => day - uniqueDays[index])
   const averageIntervalDays = intervals.length
     ? intervals.reduce((sum, value) => sum + value, 0) / intervals.length
     : null
@@ -29,19 +25,17 @@ export function calculateShowerInsights(showers: ShowerEntry[], now = new Date()
   let longestStreak = uniqueDays.length ? 1 : 0
   let running = longestStreak
   for (let index = 1; index < uniqueDays.length; index += 1) {
-    running = (uniqueDays[index] - uniqueDays[index - 1]) / DAY_MS === 1 ? running + 1 : 1
+    running = uniqueDays[index] - uniqueDays[index - 1] === 1 ? running + 1 : 1
     longestStreak = Math.max(longestStreak, running)
   }
 
   let currentStreak = 0
   if (uniqueDays.length) {
-    const today = new Date(now)
-    today.setHours(0, 0, 0, 0)
-    const gap = (today.getTime() - uniqueDays.at(-1)!) / DAY_MS
+    const gap = getCalendarDayNumber(now) - uniqueDays.at(-1)!
     if (gap <= 1) {
       currentStreak = 1
       for (let index = uniqueDays.length - 1; index > 0; index -= 1) {
-        if ((uniqueDays[index] - uniqueDays[index - 1]) / DAY_MS !== 1) break
+        if (uniqueDays[index] - uniqueDays[index - 1] !== 1) break
         currentStreak += 1
       }
     }

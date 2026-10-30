@@ -12,6 +12,7 @@ A local-first PWA to log showers, review your history, and track personal goals.
 - Weekly and monthly goals, light and dark themes.
 - Installable as a PWA with offline tracking. Reminders run only while the app is open.
 - JSON backup and restore in Settings. Export a backup before clearing browser data.
+- If IndexedDB is unavailable, fallback writes require browser Web Locks support. Older browsers can still read and export saved fallback history.
 
 ## Tech stack & engineering
 
@@ -25,7 +26,7 @@ Start with [the home page](src/pages/HomePage.tsx), [storage services](src/lib/d
 
 ## Development
 
-Use Node.js 22.12+ and pnpm 10.
+Use Node.js 22 LTS (`nvm use`) and pnpm 10.
 
 ```bash
 pnpm install
@@ -34,11 +35,18 @@ pnpm dev
 
 ```bash
 pnpm test          # Unit tests
-pnpm test:e2e     # Playwright tests (install browsers first: pnpm exec playwright install)
+pnpm test:e2e      # Fast Chromium E2E suite (builds and serves the production app)
+pnpm test:e2e:all  # Chromium, Firefox, WebKit, Mobile Chrome, and Mobile Safari
 pnpm lint
 pnpm build        # Production build
 pnpm preview      # Serve the build locally
 ```
+
+Install browser binaries and Linux system libraries once with `pnpm exec playwright install --with-deps chromium` for the fast suite, or `pnpm exec playwright install --with-deps chromium firefox webkit` for all projects. Use Node 22 LTS; browser extraction stalled under Node 26 in our test environment.
+
+E2E runs use two workers, no local retries, and assertion-based waits. Failures save screenshots and traces under `test-results/`; open the report with `pnpm exec playwright show-report`. The HTML report does not automatically start a server after failures. Use `pnpm test:e2e --grep @smoke` for a smaller check.
+
+The full suite explicitly skips WebKit notification permissions and offline reloads: permission grants are unsupported, and offline service-worker navigations abort with an internal error in this harness. Offline writes and reconnecting remain tested on WebKit. Verify offline reloads on a real Safari device before relying on that behavior.
 
 ## Deployment
 

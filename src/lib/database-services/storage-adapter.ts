@@ -4,14 +4,12 @@ interface StorageOperation<T> {
   indexedDB: () => Promise<T>;
   localStorage: () => Promise<T>;
   noStorage: () => T | Promise<T>;
-  fallbackMessage?: string;
 }
 
 export async function runStorageOperation<T>({
   indexedDB,
   localStorage,
   noStorage,
-  fallbackMessage = 'IndexedDB failed, trying localStorage fallback:',
 }: StorageOperation<T>): Promise<T> {
   const storageType = getRequiredStorageType();
 
@@ -23,10 +21,5 @@ export async function runStorageOperation<T>({
     return await noStorage();
   }
 
-  try {
-    return await indexedDB();
-  } catch (error) {
-    console.warn(fallbackMessage, error);
-    return await localStorage();
-  }
+  return await indexedDB();
 }

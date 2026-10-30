@@ -114,3 +114,18 @@ describe('ShowerFrequencyChart', () => {
     expect(screen.getByTestId('weekly-shower-ring')).toHaveTextContent('1/4');
   });
 });
+
+it.each([[2, 29, 30], [9, 25, 26]])('counts yesterday correctly across a clock change in month %i', (month, previous, today) => {
+  vi.useFakeTimers();
+  vi.setSystemTime(new Date(2026, month, today, 12));
+  render(createElement(ShowerFrequencyChart, {
+    ...defaultProps, showers: [{ id: '1', timestamp: new Date(2026, month, previous, 12) }]
+  }));
+  expect(screen.getByTestId('days-since-shower-ring')).toHaveTextContent('1/7');
+});
+
+it('includes the last hour of a 25-hour local day', () => {
+  const today = new Date(2026, 9, 25, 23, 45);
+  const days = getLast30DaysShowerFrequency([{ id: '1', timestamp: today }], today);
+  expect(days.at(-1)?.count).toBe(1);
+});

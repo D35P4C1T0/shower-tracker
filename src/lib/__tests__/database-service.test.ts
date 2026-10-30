@@ -470,6 +470,69 @@ describe('DatabaseService', () => {
       expect(showers[0].notes).toBe('Keep me');
     });
 
+    it.each([null, true, [], {}])('rejects malformed import timestamps (%j) without losing history', async (timestamp) => {
+      await ShowerService.addShower(new Date('2024-01-01'), 'Keep me');
+      await expect(DatabaseService.importData({
+        schemaVersion: 1, showers: [{ timestamp }]
+      })).rejects.toThrow('invalid timestamp');
+      expect((await ShowerService.getAllShowers())[0].notes).toBe('Keep me');
+    });
+
+    it('rejects non-string imported notes without losing history', async () => {
+      await ShowerService.addShower(new Date('2024-01-01'), 'Keep me');
+      await expect(DatabaseService.importData({
+        schemaVersion: 1, showers: [{ timestamp: '2024-01-02', notes: {} }]
+      })).rejects.toThrow('Notes must be a string');
+      expect((await ShowerService.getAllShowers())[0].notes).toBe('Keep me');
+    });
+
+    it('rolls back every table when an import write fails', async () => {
+      await ShowerService.addShower(new Date('2024-01-01'), 'Keep me');
+      await SettingsService.saveSettings({ ...DEFAULT_SETTINGS, theme: 'dark' });
+      await MetadataService.setMetadata('old', 'keep');
+      const before = await DatabaseService.exportData();
+      const insert = vi.spyOn(db.showers, 'bulkAdd').mockRejectedValueOnce(new Error('write failed'));
+      try {
+        await expect(DatabaseService.importData({
+          schemaVersion: 1, showers: [{ timestamp: '2024-02-01' }], settings: DEFAULT_SETTINGS, metadata: {}
+        })).rejects.toThrow('write failed');
+        const after = await DatabaseService.exportData();
+        expect(after.showers).toEqual(before.showers);
+        expect(after.settings).toEqual(before.settings);
+        expect(after.metadata).toEqual(before.metadata);
+      } finally { insert.mockRestore(); }
+    });
+
+    it('surfaces database failures without saving to a separate fallback store', async () => {
+      const insert = vi.spyOn(db.showers, 'add').mockRejectedValueOnce(new Error('write failed'));
+      try {
+        await expect(ShowerService.addShower(new Date('2024-01-01'))).rejects.toThrow('write failed');
+        expect(DatabaseService.getStorageType()).toBe('indexeddb');
+        expect(await ShowerService.getAllShowers()).toEqual([]);
+      } finally { insert.mockRestore(); }
+    });
+
+    it('loads and changes settings while localStorage is blocked', async () => {
+      const read = vi.spyOn(localStorage, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
+      try {
+        await DatabaseService.initialize();
+        expect(DatabaseService.getStorageType()).toBe('indexeddb');
+        await SettingsService.updateSetting('theme', 'dark');
+        expect((await DatabaseService.exportData()).settings.theme).toBe('dark');
+      } finally { read.mockRestore(); }
+    });
+
+    it('migrates the legacy theme once so restored settings take precedence', async () => {
+      const read = vi.spyOn(localStorage, 'getItem').mockImplementation(key => key === 'shower-tracker-theme' ? 'dark' : null);
+      try {
+        await SettingsService.migrateLegacyTheme();
+        expect((await SettingsService.getSettings()).theme).toBe('dark');
+        expect(localStorage.removeItem).toHaveBeenCalledWith('shower-tracker-theme');
+      } finally { read.mockRestore(); }
+      await DatabaseService.importData({ schemaVersion: 1, showers: [], settings: { theme: 'light' } });
+      expect((await DatabaseService.exportData()).settings.theme).toBe('light');
+    });
+
     it('should import data from a JSON string', async () => {
       await DatabaseService.importData(JSON.stringify({
         schemaVersion: 1,

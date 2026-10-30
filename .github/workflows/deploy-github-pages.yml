@@ -16,7 +16,7 @@ concurrency:
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
       - name: Checkout
@@ -28,7 +28,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
-          node-version: 20
+          node-version: 22
           cache: 'pnpm'
 
       - name: Install dependencies
@@ -43,16 +43,10 @@ jobs:
       - name: Install Chromium and system dependencies
         run: pnpm exec playwright install --with-deps chromium
 
-      - name: Run e2e tests (blocking smoke - Chromium only)
+      - name: Run desktop and mobile Chromium E2E tests
         env:
           CI: true
-        run: pnpm exec playwright test --workers=1 --grep-invert @nonblocking --project=chromium
-
-      - name: Run e2e tests (exploratory - Mobile Chrome)
-        env:
-          CI: true
-        run: pnpm exec playwright test --workers=1 --grep @nonblocking --project="Mobile Chrome"
-        continue-on-error: true
+        run: pnpm exec playwright test --project=chromium --project="Mobile Chrome"
 
       - name: Upload Playwright report on failure
         if: failure()
