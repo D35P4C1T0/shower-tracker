@@ -1,296 +1,107 @@
 import { test, expect } from '@playwright/test'
+import { openApp, recordShower, todayButton } from './helpers'
 
-test.describe('Shower Tracking E2E Tests', () => {
-  test.beforeEach(async ({ page }) => {
-    await page.goto('/')
-    // Wait for app to load
-    await page.waitForSelector('text=Shower Tracker')
-    const onboarding = page.getByTestId('onboarding-dialog')
-    if (await onboarding.isVisible().catch(() => false)) await onboarding.getByRole('button', { name: 'Get started' }).click()
-  })
+test.beforeEach(async ({ page }) => {
+  await openApp(page)
+})
 
-  test('should record a shower and display it in calendar @smoke', async ({ page }) => {
-    // Record a shower
-    await page.click('button[aria-label="Record shower"]')
-    
-    // Wait for success message or toast
-    await expect(page.locator('[data-testid="toast"]')).toBeVisible({ timeout: 10000 })
-    
-    // Navigate to calendar
-    await page.click('button[aria-label="Calendar"]')
-    
-    // Wait for calendar to load
-    await page.waitForSelector('[data-testid="calendar"]', { timeout: 10000 })
-    
-    // Wait a bit for the calendar to load shower data
-    
-    // Check that today's date exists
-    const today = await page.evaluate(() => {
-      const date = new Date()
-      return [date.getFullYear(), `${date.getMonth() + 1}`.padStart(2, '0'), `${date.getDate()}`.padStart(2, '0')].join('-')
-    })
-    const todayButton = page.locator(`button[data-date="${today}"]`)
-    await expect(todayButton).toBeVisible({ timeout: 10000 })
-    
-    // Check if the button has shower indicator - try multiple approaches
-    await expect(todayButton).toHaveClass(/has-shower/)
-  })
+test('records a shower and displays it in calendar @smoke', async ({ page }) => {
+  await recordShower(page)
+  await page.getByRole('button', { name: 'Calendar', exact: true }).click()
+  await expect(await todayButton(page)).toHaveClass(/has-shower/)
+})
 
-  test('should update settings and persist changes @nonblocking', async ({ page }) => {
-    // Navigate to settings
-    await page.click('button[aria-label="Settings"]')
-    await page.waitForSelector('[data-testid="settings-page"]', { timeout: 10000 })
-    
-    // Look for notification toggle - use more flexible selector
-    const notificationToggle = page.locator('[data-testid="notification-toggle"]').or(
-      page.locator('button[role="switch"]').filter({ hasText: 'Notifications' })
-    )
-    
-    if (await notificationToggle.isVisible()) {
-      // Check if toggle is enabled, if not skip this test
-      if (await notificationToggle.isEnabled()) {
-        await notificationToggle.click()
-      } else {
-        console.log('Notification toggle is disabled, skipping notification test')
-      }
-      
-      // Set notification threshold if input appears
-      const thresholdInput = page.locator('input[type="number"]')
-      if (await thresholdInput.isVisible()) {
-        await thresholdInput.fill('5')
-      }
-    }
-    
-    // Change theme if theme selector exists (use the one in settings page specifically)
-    const themeButton = page.locator('[data-testid="settings-page"]').locator('button[aria-label="Toggle theme"]').first()
-    
-    try {
-      if (await themeButton.isVisible({ timeout: 3000 })) {
-        await themeButton.click()
-        
-        const darkOption = page.locator('text=Dark').or(page.locator('[data-value="dark"]'))
-        if (await darkOption.isVisible({ timeout: 2000 })) {
-          await darkOption.click()
-          
-          // Verify dark theme is applied
-          await expect(page.locator('html')).toHaveClass(/dark/, { timeout: 5000 })
-        }
-      }
-    } catch {
-      console.log('Theme toggle not found or not working, skipping theme test')
-    }
-    
-    const expectedTheme = await page.locator('html').getAttribute('class')
-    await page.reload()
-    await page.waitForSelector('text=Shower Tracker')
-    if (expectedTheme?.includes('dark')) await expect(page.locator('html')).toHaveClass(/dark/)
-  })
+test('persists theme and calendar settings after reload', async ({ page }) => {
+  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  const settings = page.getByTestId('settings-page')
+  await settings.getByRole('button', { name: 'Toggle theme', exact: true }).press('Enter')
+  await page.getByRole('menuitem', { name: 'Dark', exact: true }).click()
+  await expect(page.locator('html')).toHaveClass(/dark/)
+  await page.getByRole('combobox', { name: 'First day of week' }).click()
+  await page.getByRole('option', { name: 'Monday', exact: true }).click()
+  await expect(page.getByText('First day of week updated successfully.')).toBeVisible()
+  await page.reload()
+  await expect(page.locator('html')).toHaveClass(/dark/)
+  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  await expect(page.getByRole('combobox', { name: 'First day of week' })).toHaveText('Monday')
+})
 
-  test('should display time since last shower @smoke', async ({ page }) => {
-    // Record a shower first
-    await page.click('button[aria-label="Record shower"]')
-    await expect(page.locator('[data-testid="toast"]')).toBeVisible({ timeout: 10000 })
-    
-    // Navigate back to home if not already there
-    const homeButton = page.locator('button[aria-label="Home"]')
-    if (await homeButton.isVisible()) {
-      await homeButton.click()
-    }
-    
-    // Should show time since last shower - use more specific selector to avoid strict mode violation
-    await expect(page.locator('[data-testid="last-shower-time"]').or(
-      page.locator('p:has-text("Last shower")')
-    )).toBeVisible({ timeout: 10000 })
-    
-    await expect(page.locator('text=seconds ago').or(
-      page.locator('text=minutes ago')
-    )).toBeVisible({ timeout: 5000 })
-  })
+test('displays time since last shower @smoke', async ({ page }) => {
+  await recordShower(page)
+  await expect(page.getByTestId('last-shower-time')).toContainText('Logged on')
+  await expect(page.getByText(/^\d+ seconds? ago$/)).toBeVisible()
+})
 
-  test('should handle offline functionality @nonblocking', async ({ page, context }) => {
-    // Record a shower while online
-    await page.click('button[aria-label="Record shower"]')
-    await expect(page.locator('[data-testid="toast"]')).toBeVisible({ timeout: 10000 })
-    
-    // Go offline
-    await context.setOffline(true)
-    
-    // App should still be functional
-    await page.click('button[aria-label="Calendar"]')
-    
-    // Wait for calendar to load and check for month name (more flexible)
-    const currentMonth = new Date().toLocaleString('default', { month: 'long' })
-    await expect(page.locator(`text=${currentMonth}`).or(
-      page.locator('[data-testid="calendar-month"]')
-    )).toBeVisible({ timeout: 10000 })
-    
-    // Should show offline indicator (may not always appear immediately)
-    const offlineIndicator = page.locator('[data-testid="offline-indicator"]').or(
-      page.locator('text=Offline')
-    )
-    
-    await expect(offlineIndicator).toBeVisible({ timeout: 5000 })
-    
-    // Go back online
-    await context.setOffline(false)
-    await page.waitForTimeout(2000) // Wait for network detection
-    
-    // Offline indicator should disappear
-    await expect(page.locator('[data-testid="offline-indicator"]').or(
-      page.locator('text=Offline')
-    )).not.toBeVisible({ timeout: 10000 })
-  })
+test('navigates offline and restores online status', async ({ page, context }) => {
+  await recordShower(page)
+  await context.setOffline(true)
+  // Firefox's network emulation does not reliably emit status events in an open page.
+  await page.evaluate(() => window.dispatchEvent(new Event('offline')))
+  await expect(page.getByTestId('offline-indicator')).toBeVisible()
+  await page.getByRole('button', { name: 'Calendar', exact: true }).click()
+  await expect(await todayButton(page)).toHaveClass(/has-shower/)
+  await context.setOffline(false)
+  await page.evaluate(() => window.dispatchEvent(new Event('online')))
+  await expect(page.getByTestId('offline-indicator')).not.toBeVisible()
+})
 
-  test('should support PWA installation flow @nonblocking', async ({ page }) => {
-    // Mock beforeinstallprompt event
-    await page.addInitScript(() => {
-      window.addEventListener('beforeinstallprompt', (e) => {
-        e.preventDefault()
-        const event = new CustomEvent('showinstallprompt')
-        window.dispatchEvent(event)
-      })
-    })
-    
-    // Look for install prompt (may vary by platform)
-    const installButton = page.locator('button:has-text("Install")')
-    if (await installButton.isVisible()) {
-      await installButton.click()
-      
-      // Should show installation success or hide prompt
-      await expect(installButton).not.toBeVisible()
-    }
-  })
+test('remembers onboarding completion', async ({ page }) => {
+  await expect(page.getByTestId('onboarding-dialog')).not.toBeVisible()
+  expect(await page.evaluate(() => localStorage.getItem('shower-tracker-onboarding-complete'))).toBe('true')
+  await page.reload()
+  await expect(page.getByRole('button', { name: 'Record shower', exact: true })).toBeEnabled()
+  await expect(page.getByTestId('onboarding-dialog')).not.toBeVisible()
+})
 
-  test('should handle calendar navigation @smoke', async ({ page }) => {
-    await page.click('button[aria-label="Calendar"]')
-    await page.waitForSelector('[data-testid="calendar"]', { timeout: 10000 })
-    
-    // Navigate to next month
-    const nextButton = page.locator('button[aria-label="Next month"]').or(
-      page.locator('[data-testid="next-month"]')
-    )
-    await nextButton.click()
-    
-    // Should show next month
-    const nextMonth = new Date()
-    nextMonth.setMonth(nextMonth.getMonth() + 1)
-    const monthName = nextMonth.toLocaleString('default', { month: 'long' })
-    await expect(page.locator(`text=${monthName}`).or(
-      page.locator('[data-testid="calendar-month"]')
-    )).toBeVisible({ timeout: 5000 })
-    
-    // Navigate back to previous month
-    const prevButton = page.locator('button[aria-label="Previous month"]').or(
-      page.locator('[data-testid="prev-month"]')
-    )
-    await prevButton.click()
-    
-    // Should show current month
-    const currentMonth = new Date().toLocaleString('default', { month: 'long' })
-    await expect(page.locator(`text=${currentMonth}`).or(
-      page.locator('[data-testid="calendar-month"]')
-    )).toBeVisible({ timeout: 5000 })
-  })
+test('navigates calendar months including month-end @smoke', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-01-31T12:00:00'))
+  await page.getByRole('button', { name: 'Calendar', exact: true }).click()
+  await expect(page.getByTestId('calendar-month')).toHaveText('January')
+  await page.getByRole('button', { name: 'Next month', exact: true }).click()
+  await expect(page.getByTestId('calendar-month')).toHaveText('February')
+  await page.getByRole('button', { name: 'Previous month', exact: true }).click()
+  await expect(page.getByTestId('calendar-month')).toHaveText('January')
+})
 
-  test('should show shower details when clicking calendar date @nonblocking', async ({ page }) => {
-    // Record a shower first
-    await page.click('button[aria-label="Record shower"]')
-    await expect(page.locator('[data-testid="toast"]')).toBeVisible({ timeout: 10000 })
-    
-    // Navigate to calendar
-    await page.click('button[aria-label="Calendar"]')
-    await page.waitForSelector('[data-testid="calendar"]', { timeout: 10000 })
-    
-    // Click on today's date
-    const today = await page.evaluate(() => {
-      const date = new Date()
-      return [date.getFullYear(), `${date.getMonth() + 1}`.padStart(2, '0'), `${date.getDate()}`.padStart(2, '0')].join('-')
-    })
-    const todayButton = page.locator(`button[data-date="${today}"]`)
-    await expect(todayButton).toBeVisible({ timeout: 10000 })
-    await todayButton.click()
-    
-    // Should show shower details modal or popup
-    await expect(page.locator('[data-testid="shower-details"]').or(
-      page.locator('text=Shower Details')
-    )).toBeVisible({ timeout: 10000 })
-    
-    // Look for time information (more flexible)
-    const timePattern = page.locator('text=/\\d{1,2}:\\d{2}\\s*(AM|PM)/i')
-    if (await timePattern.isVisible()) {
-      await expect(timePattern).toBeVisible()
-    }
-    
-    // Close modal
-    const closeButton = page.locator('button[aria-label="Close"]').or(
-      page.locator('[data-testid="close-modal"]')
-    )
-    if (await closeButton.isVisible()) {
-      await closeButton.click()
-      await expect(page.locator('[data-testid="shower-details"]').or(
-        page.locator('text=Shower Details')
-      )).not.toBeVisible({ timeout: 5000 })
-    }
-  })
+test('edits notes and deletes a shower from calendar details', async ({ page }) => {
+  await recordShower(page)
+  await page.getByRole('button', { name: 'Calendar', exact: true }).click()
+  await (await todayButton(page)).click()
+  const details = page.getByTestId('shower-details')
+  await expect(details).toContainText('1 shower recorded')
+  await details.getByRole('button', { name: 'Edit shower', exact: true }).click()
+  await page.getByTestId('edit-shower-notes').fill('After exercise')
+  await page.getByTestId('save-shower-time').click()
+  await expect(page.getByTestId('edit-time-dialog')).not.toBeVisible()
+  await expect(details).toContainText('After exercise')
+  await details.getByRole('button', { name: 'Edit shower', exact: true }).click()
+  await page.getByTestId('delete-shower-from-edit').click()
+  await expect(details).toContainText('No showers recorded')
+  await expect(await todayButton(page)).not.toHaveClass(/has-shower/)
+  await page.getByRole('button', { name: 'Close details', exact: true }).click()
+  await expect(details).not.toBeVisible()
+})
 
-  test('should support keyboard navigation', async ({ page }) => {
-    // Test keyboard navigation on main page
-    await page.keyboard.press('Tab')
-    
-    // Record button should be focused (more flexible check)
-    const recordButton = page.locator('button[aria-label="Record shower"]')
-    
-    // Try to focus the button explicitly if not focused
-    await recordButton.focus()
-    await expect(recordButton).toBeFocused({ timeout: 5000 })
-    
-    // Press Enter to activate
-    await page.keyboard.press('Enter')
-    await expect(page.locator('[data-testid="toast"]')).toBeVisible({ timeout: 10000 })
-    
-    // Navigate to calendar with keyboard
-    const calendarButton = page.locator('button[aria-label="Calendar"]')
-    await calendarButton.focus()
-    await page.keyboard.press('Enter')
-    
-    // Should be on calendar page
-    const currentMonth = new Date().toLocaleString('default', { month: 'long' })
-    await expect(page.locator(`text=${currentMonth}`).or(
-      page.locator('[data-testid="calendar-month"]')
-    )).toBeVisible({ timeout: 10000 })
-  })
+test('records and navigates using the keyboard', async ({ page }) => {
+  const record = page.getByRole('button', { name: 'Record shower', exact: true })
+  await record.focus()
+  await expect(record).toBeFocused()
+  await page.keyboard.press('Enter')
+  await expect(page.getByText('Shower recorded!', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Calendar', exact: true }).focus()
+  await page.keyboard.press('Enter')
+  await expect(await todayButton(page)).toHaveClass(/has-shower/)
+})
 
-  test('should handle error states gracefully @nonblocking', async ({ page }) => {
-    // Mock a network error by intercepting requests
-    await page.route('**/*', route => {
-      // Let most requests through, but simulate occasional failures
-      if (Math.random() < 0.1) {
-        route.abort('failed')
-      } else {
-        route.continue()
-      }
-    })
-    
-    // Try to record a shower multiple times to potentially trigger an error
-    for (let i = 0; i < 3; i++) {
-      await page.click('button[aria-label="Record shower"]')
-      await page.waitForTimeout(500)
-    }
-    
-    // Check if any error toast appeared, but don't fail if none
-    const errorToast = page.locator('[data-testid="toast"]').filter({ hasText: /error|failed/i })
-    
-    try {
-      await expect(errorToast).toBeVisible({ timeout: 3000 })
-    } catch {
-      console.log('No error toast shown, app handled errors gracefully')
-    }
-    
-    // App should still be functional for other operations
-    await page.click('button[aria-label="Calendar"]')
-    const currentMonth = new Date().toLocaleString('default', { month: 'long' })
-    await expect(page.locator(`text=${currentMonth}`).or(
-      page.locator('[data-testid="calendar-month"]')
-    )).toBeVisible({ timeout: 10000 })
-  })
+test('rejects future shower edits without losing the original', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-01-15T12:00:00'))
+  await recordShower(page)
+  await page.getByRole('button', { name: 'Calendar', exact: true }).click()
+  await (await todayButton(page)).click()
+  await page.getByRole('button', { name: 'Edit shower', exact: true }).click()
+  await page.getByTestId('edit-shower-time-input').fill('23:59')
+  await page.getByTestId('save-shower-time').click()
+  await expect(page.getByText('Cannot record a shower in the future', { exact: true })).toBeVisible()
+  await page.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(page.getByTestId('shower-details')).toContainText('1 shower recorded')
 })

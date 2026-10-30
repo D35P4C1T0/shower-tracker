@@ -1,24 +1,5 @@
-import { test, expect, type Page } from '@playwright/test'
-
-async function openApp(page: Page) {
-  await page.goto('/')
-  const onboarding = page.getByTestId('onboarding-dialog')
-  await page.waitForSelector('text=Shower Tracker')
-  if (await onboarding.isVisible()) await onboarding.getByRole('button', { name: 'Get started' }).click()
-  await expect(page.getByRole('button', { name: 'Record shower', exact: true })).toBeVisible()
-}
-
-async function exportData(page: Page) {
-  await page.getByRole('button', { name: 'Settings', exact: true }).click()
-  await page.getByRole('button', { name: 'Export / Import Data', exact: true }).click()
-  const download = page.waitForEvent('download')
-  await page.getByTestId('export-data').click()
-  const file = await download
-  const stream = await file.createReadStream()
-  const chunks = []
-  for await (const chunk of stream!) chunks.push(chunk)
-  return JSON.parse(Buffer.concat(chunks).toString())
-}
+import { test, expect } from '@playwright/test'
+import { openApp, exportData } from './helpers'
 
 test('two tabs keep fallback writes after reload even when IndexedDB returns', async ({ page, context }) => {
   await context.addInitScript(() => {
@@ -50,7 +31,7 @@ test('IndexedDB tracking and themes work with localStorage blocked', async ({ pa
   await openApp(page)
   await page.getByRole('button', { name: 'Record shower', exact: true }).click()
   await expect(page.getByText('Shower recorded!', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Toggle theme', exact: true }).click()
+  await page.getByRole('button', { name: 'Toggle theme', exact: true }).press('Enter')
   await page.getByRole('menuitem', { name: 'Dark', exact: true }).click()
   await expect(page.locator('html')).toHaveClass(/dark/)
   const data = await exportData(page)
@@ -61,7 +42,7 @@ test('IndexedDB tracking and themes work with localStorage blocked', async ({ pa
 })
 
 test('legacy theme survives migration and imported theme takes precedence', async ({ page }) => {
-  await page.goto('/')
+  await openApp(page)
   await page.evaluate(() => {
     localStorage.setItem('shower-tracker-theme', 'dark')
     localStorage.setItem('shower-tracker-onboarding-complete', 'true')
@@ -81,16 +62,23 @@ test('legacy theme survives migration and imported theme takes precedence', asyn
 })
 
 test('new version prompts for an update and preserves another app cache', async ({ page }) => {
+  // Browser routing cannot consistently intercept requests controlled by a service worker.
+  await page.addInitScript(() => {
+    const originalFetch = window.fetch.bind(window)
+    window.fetch = (input, init) => {
+      const url = input instanceof Request ? input.url : String(input)
+      if (new URL(url, location.href).pathname.endsWith('/version.json')) {
+        return Promise.resolve(Response.json({ version: '9.9.9', buildId: '9.9.9-new-release' }))
+      }
+      return originalFetch(input, init)
+    }
+  })
   await openApp(page)
   await page.evaluate(async () => {
     await navigator.serviceWorker.ready
     const cache = await caches.open('another-app-offline')
     await cache.put('/another-app-document', new Response('keep'))
   })
-  await page.route('**/version.json', route => route.fulfill({
-    json: { version: '9.9.9', buildId: '9.9.9-new-release' }
-  }))
-  await page.evaluate(() => window.dispatchEvent(new Event('focus')))
   await expect(page.getByText('Version 9.9.9 is available!')).toBeVisible()
   await page.getByRole('button', { name: 'Update Now', exact: true }).click()
   await expect(page).toHaveURL(/app-version=9.9.9-new-release/)

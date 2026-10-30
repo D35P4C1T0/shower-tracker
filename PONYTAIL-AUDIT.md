@@ -23,3 +23,7 @@ Read storage services, backup import/export, shared validation, application stat
 ## Limits
 
 Browser E2E, live deployment, actual device notifications, and dependency vulnerability scanning were not run. The build reports stale Browserslist data. Fixes and regression tests are included in this commit. No deployment or browser verification was performed. Malformed backups previously accepted by coercion now require corrected timestamp/note types before import.
+
+## E2E follow-up
+
+Browser coverage was subsequently investigated and repaired; see [E2E-AUDIT.md](E2E-AUDIT.md) for verification and explicit WebKit limits.
