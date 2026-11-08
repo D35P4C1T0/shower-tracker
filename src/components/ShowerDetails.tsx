@@ -1,8 +1,9 @@
 import { useState } from 'react';
-import { Pencil, Trash2, Droplet, Plus } from 'lucide-react';
+import { useSwipeable } from 'react-swipeable';
+import { Pencil, Trash2, Droplet, Plus, Sunrise, Sun, Moon, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './ui/card';
 import { Button } from './ui/button';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from './ui/dialog';
+import { Dialog, DialogClose, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
 import { useShowers } from '../hooks/useShowers';
@@ -10,6 +11,12 @@ import { useToast } from './toast';
 import type { ShowerEntry } from '../types';
 import { formatDate, isSameDay } from '../lib/calendar-utils';
 import { cn } from '../lib/utils';
+
+const TIME_PRESETS = [
+  { label: 'Morning', time: '08:00', icon: Sunrise },
+  { label: 'Noon', time: '12:00', icon: Sun },
+  { label: 'Evening', time: '20:00', icon: Moon },
+];
 
 interface ShowerDetailsProps {
   date: Date;
@@ -60,6 +67,8 @@ function useShowerTimeEditor(date: Date, onShowersChanged?: () => void) {
   const [draftShowerTimestamp, setDraftShowerTimestamp] = useState<Date | null>(null);
   const [editTime, setEditTime] = useState('');
   const [editNotes, setEditNotes] = useState('');
+  const [showCustomTime, setShowCustomTime] = useState(false);
+  const [showNotes, setShowNotes] = useState(false);
   const [isDeletingShower, setIsDeletingShower] = useState(false);
   const [isSavingTime, setIsSavingTime] = useState(false);
   const { addShower, deleteShower, updateShower } = useShowers();
@@ -78,6 +87,8 @@ function useShowerTimeEditor(date: Date, onShowersChanged?: () => void) {
     setShowerToEdit(shower);
     setEditTime(formatTimeInput(new Date(shower.timestamp)));
     setEditNotes(shower.notes ?? '');
+    setShowNotes(!!shower.notes);
+    setShowCustomTime(!TIME_PRESETS.some(preset => preset.time === formatTimeInput(new Date(shower.timestamp))));
   };
 
   const handleAddShower = () => {
@@ -86,6 +97,8 @@ function useShowerTimeEditor(date: Date, onShowersChanged?: () => void) {
     setDraftShowerTimestamp(showerTimestamp);
     setEditTime(formatTimeInput(showerTimestamp));
     setEditNotes('');
+    setShowNotes(false);
+    setShowCustomTime(!TIME_PRESETS.some(preset => preset.time === formatTimeInput(showerTimestamp)));
   };
 
   const handleSaveTime = async () => {
@@ -133,26 +146,6 @@ function useShowerTimeEditor(date: Date, onShowersChanged?: () => void) {
     setEditNotes('');
   };
 
-  const handleUseDefaultTime = async () => {
-    if (!draftShowerTimestamp) {
-      handleCancelEditTime();
-      return;
-    }
-
-    setIsSavingTime(true);
-    try {
-      await addShower(draftShowerTimestamp);
-      showSuccess('Shower added', `Added shower for ${formatDate(date)} at ${formatTime(draftShowerTimestamp)}.`);
-      setDraftShowerTimestamp(null);
-      setEditTime('');
-      onShowersChanged?.();
-    } catch (error) {
-      showError('Failed to add shower', error instanceof Error ? error.message : 'Unknown error');
-    } finally {
-      setIsSavingTime(false);
-    }
-  };
-
   const handleDeleteFromEdit = async () => {
     if (!showerToEdit) return;
 
@@ -177,6 +170,10 @@ function useShowerTimeEditor(date: Date, onShowersChanged?: () => void) {
     setEditTime,
     editNotes,
     setEditNotes,
+    showCustomTime,
+    setShowCustomTime,
+    showNotes,
+    setShowNotes,
     isCreatingShower,
     isDeletingShower,
     isSavingTime,
@@ -184,7 +181,6 @@ function useShowerTimeEditor(date: Date, onShowersChanged?: () => void) {
     handleAddShower,
     handleSaveTime,
     handleCancelEditTime,
-    handleUseDefaultTime,
     handleDeleteFromEdit,
   };
 }
@@ -197,6 +193,10 @@ export function ShowerDetails({ date, showers, onClose, onShowersChanged }: Show
     setEditTime,
     editNotes,
     setEditNotes,
+    showCustomTime,
+    setShowCustomTime,
+    showNotes,
+    setShowNotes,
     isCreatingShower,
     isDeletingShower,
     isSavingTime,
@@ -204,189 +204,259 @@ export function ShowerDetails({ date, showers, onClose, onShowersChanged }: Show
     handleAddShower,
     handleSaveTime,
     handleCancelEditTime,
-    handleUseDefaultTime,
     handleDeleteFromEdit,
   } = useShowerTimeEditor(date, onShowersChanged);
   const isSelectedDateInFuture = isFutureDay(date);
+  const drawerSwipeHandlers = useSwipeable({
+    delta: 40,
+    trackMouse: true,
+    preventScrollOnSwipe: true,
+    onSwipedDown: () => {
+      if (!isSavingTime && !isDeletingShower) handleCancelEditTime();
+    },
+  });
 
   return (
-    <Card data-testid="shower-details">
-      <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
+    <Card className="app-fade-up app-fade-up-delay-2" data-testid="shower-details">
+      <CardHeader className="pb-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-1">
+            <p className="text-xs font-medium uppercase tracking-widest text-muted-foreground">
+              {date.toLocaleDateString('en-US', { weekday: 'long' })}
+            </p>
             <CardTitle className="text-lg">
-              {formatDate(date)}
+              {date.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })}
             </CardTitle>
-            <CardDescription>
-              {showers.length === 0 
+            <CardDescription className="text-xs">
+              {showers.length === 0
                 ? 'No showers recorded'
                 : `${showers.length} shower${showers.length > 1 ? 's' : ''} recorded`
               }
             </CardDescription>
           </div>
           {onClose && (
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={onClose}
-              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-md text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+              className="-mr-2 -mt-2 h-11 w-11 shrink-0 rounded-full text-muted-foreground"
               aria-label="Close details"
               data-testid="close-modal"
             >
-              ✕
-            </button>
+              <X className="h-4 w-4" aria-hidden="true" />
+            </Button>
           )}
         </div>
       </CardHeader>
       <CardContent>
         {showers.length === 0 ? (
-          <div className="text-center py-4 text-muted-foreground space-y-3">
-            <p>{isSelectedDateInFuture ? 'Cannot add showers for future days.' : 'No showers were recorded on this day.'}</p>
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={handleAddShower}
-              disabled={isSavingTime || isSelectedDateInFuture}
-              aria-label="Add shower"
-              className="h-10 w-10"
-              data-testid="add-shower-for-day"
-            >
-              <Plus className="h-4 w-4" />
-            </Button>
+          <div className="flex items-center gap-3 rounded-xl bg-muted/40 p-4">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-background text-muted-foreground">
+              <Droplet className="h-5 w-5" aria-hidden="true" />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              {isSelectedDateInFuture ? 'Cannot add showers for future days.' : 'Log a shower to fill in this day.'}
+            </p>
           </div>
         ) : (
-          <div className="relative">
-            {/* Vertical timeline line */}
-            <div className="absolute left-5 top-2 bottom-2 w-0.5 bg-gradient-to-b from-blue-500 to-blue-300 dark:from-blue-400 dark:to-blue-600" />
-            
-            {/* Timeline items */}
-            <div className="space-y-3">
-              {showers.map((shower) => (
-                <div key={shower.id} className="relative pl-10">
-                  {/* Timeline dot */}
-                  <div className={cn(
-                    "absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-background flex items-center justify-center",
-                    "bg-blue-500 dark:bg-blue-400"
-                  )}>
-                    <Droplet className="h-2.5 w-2.5 text-white fill-white" />
-                  </div>
-                  
-                  {/* Content */}
-                  <div className="group relative rounded-md border bg-card hover:bg-accent/50 transition-colors p-2">
-                    <div className="grid grid-cols-[2rem_minmax(0,1fr)_2rem] items-center gap-2">
-                      <div aria-hidden="true" />
-                      <div className="min-w-0 text-center">
-                        <div className={cn(
-                          'font-semibold text-sm',
-                          shower.notes && 'mb-1'
-                        )}>
-                          {formatTime(new Date(shower.timestamp))}
-                        </div>
-                        {shower.notes && (
-                          <div className="break-words text-sm text-muted-foreground">
-                            {shower.notes}
-                          </div>
-                        )}
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleEditClick(shower)}
-                        className="h-8 w-8 shrink-0"
-                        aria-label="Edit shower"
-                        data-testid={`edit-shower-${shower.id}`}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-3 flex justify-center pl-10">
+          <div className="divide-y divide-border/60 overflow-hidden rounded-xl bg-muted/30">
+            {showers.map((shower) => (
               <Button
-                variant="outline"
-                size="icon"
-                onClick={handleAddShower}
-                disabled={isSavingTime || isSelectedDateInFuture}
-                aria-label="Add shower"
-                className="h-10 w-10"
-                data-testid="add-shower-for-day"
+                key={shower.id}
+                variant="ghost"
+                onClick={() => handleEditClick(shower)}
+                className="h-auto min-h-16 w-full justify-start gap-3 whitespace-normal rounded-none px-3 py-3 text-left hover:bg-muted/60"
+                aria-label="Edit shower"
+                data-testid={`edit-shower-${shower.id}`}
               >
-                <Plus className="h-4 w-4" />
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                  <Droplet className="h-5 w-5" aria-hidden="true" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-base font-semibold tabular-nums">
+                    {formatTime(new Date(shower.timestamp))}
+                  </span>
+                  {shower.notes && (
+                    <span className="mt-0.5 block break-words text-sm font-normal text-muted-foreground">
+                      {shower.notes}
+                    </span>
+                  )}
+                </span>
+                <Pencil className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
               </Button>
-            </div>
+            ))}
           </div>
         )}
+        <Button
+          variant="secondary"
+          onClick={handleAddShower}
+          disabled={isSavingTime || isSelectedDateInFuture}
+          className="mt-4 h-11 w-full gap-2 rounded-xl bg-primary/10 text-primary hover:bg-primary/20"
+          data-testid="add-shower-for-day"
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          Add shower
+        </Button>
       </CardContent>
 
       <Dialog open={!!showerToEdit || !!draftShowerTimestamp} onOpenChange={(open) => !open && handleCancelEditTime()}>
         <DialogContent
-          className="w-[calc(100vw-2rem)] max-w-sm gap-3 p-4"
+          className="app-shower-drawer top-auto bottom-0 w-full max-w-none sm:max-w-sm translate-y-0 grid-cols-1 gap-0 rounded-t-3xl rounded-b-none border-b-0 px-6 pt-5 pb-[max(1.75rem,env(safe-area-inset-bottom))] sm:px-6 sm:pt-5 sm:pb-[max(1.75rem,env(safe-area-inset-bottom))]"
           data-testid="edit-time-dialog"
         >
-          <DialogHeader className="space-y-0 text-left">
-            <DialogTitle className="text-base">Shower time</DialogTitle>
+          <div
+            {...drawerSwipeHandlers}
+            className="-mt-3 flex h-11 touch-none select-none items-center justify-center"
+            data-testid="shower-drawer-handle"
+            aria-hidden="true"
+          >
+            <div className="h-1 w-8 rounded-full bg-muted-foreground/40" />
+          </div>
+          <DialogHeader className="mb-5 space-y-1 text-left">
+            <DialogTitle className="text-lg">{isCreatingShower ? 'Add a shower' : 'Edit shower'}</DialogTitle>
             <DialogDescription className="text-xs">
               {formatDate(date)}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-2">
-            <Label htmlFor="shower-time">Time</Label>
-            <Input
-              id="shower-time"
-              type="time"
-              step={60}
-              value={editTime}
-              max={isSameDay(new Date(showerToEdit?.timestamp ?? draftShowerTimestamp ?? date), new Date()) ? formatTimeInput(new Date()) : undefined}
-              onChange={(event) => setEditTime(event.target.value)}
-              className="h-12 min-w-0 max-w-full text-base [appearance:textfield]"
-              data-testid="edit-shower-time-input"
-            />
+          <div className="h-16 min-w-0 overflow-hidden rounded-xl" data-testid="shower-time-selector">
+            <div
+              className="shower-time-track flex h-full w-[200%]"
+              style={{ transform: showCustomTime ? 'translateX(-50%)' : 'translateX(0)' }}
+            >
+              <div
+                className="shower-time-panel grid w-1/2 shrink-0 grid-cols-3 gap-2"
+                role="group"
+                aria-label="Time presets"
+                aria-hidden={showCustomTime}
+                inert={showCustomTime}
+                style={{ visibility: showCustomTime ? 'hidden' : 'visible' }}
+              >
+                {TIME_PRESETS.map(({ label, time, icon: Icon }) => (
+                  <Button
+                    key={time}
+                    variant="outline"
+                    aria-label={`${label} · ${time}`}
+                    title={`${label} · ${time}`}
+                    aria-pressed={!showCustomTime && editTime === time}
+                    disabled={isSavingTime || isDeletingShower || applyTimeToDate(date, time).getTime() > Date.now()}
+                    onClick={() => {
+                      setEditTime(time);
+                      setShowCustomTime(false);
+                    }}
+                    className={cn(
+                      'h-16 min-w-0 rounded-xl text-muted-foreground',
+                      !showCustomTime && editTime === time && 'border-primary bg-primary/10 text-primary hover:bg-primary/20 hover:text-primary'
+                    )}
+                  >
+                    <Icon className="h-6 w-6" aria-hidden="true" />
+                  </Button>
+                ))}
+              </div>
+              <div
+                id="shower-time-field"
+                className="shower-time-panel w-1/2 min-w-0 shrink-0"
+                aria-hidden={!showCustomTime}
+                inert={!showCustomTime}
+                style={{ visibility: showCustomTime ? 'visible' : 'hidden' }}
+              >
+                <Label htmlFor="shower-time" className="sr-only">Time</Label>
+                <Input
+                  id="shower-time"
+                  type="time"
+                  step={60}
+                  value={editTime}
+                  max={isSameDay(new Date(showerToEdit?.timestamp ?? draftShowerTimestamp ?? date), new Date()) ? formatTimeInput(new Date()) : undefined}
+                  disabled={isSavingTime || isDeletingShower}
+                  onChange={(event) => setEditTime(event.target.value)}
+                  className="h-16 min-w-0 max-w-full appearance-none rounded-xl text-center text-lg"
+                  data-testid="edit-shower-time-input"
+                />
+              </div>
+            </div>
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="shower-notes">Notes</Label>
+          <div className="my-2 grid grid-cols-[minmax(0,1fr)_1px_minmax(0,1fr)] items-center">
+            <Button
+              variant="ghost"
+              className="h-11 min-w-0 gap-1.5 px-2 text-xs text-muted-foreground"
+              aria-expanded={showNotes}
+              aria-controls="shower-notes-field"
+              onClick={() => setShowNotes(!showNotes)}
+            >
+              <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+              {showNotes ? 'Hide note' : editNotes ? 'Edit note' : 'Add a note'}
+            </Button>
+            <div className="h-4 bg-border" aria-hidden="true" />
+            <Button
+              variant="ghost"
+              className="h-11 min-w-0 gap-1.5 px-2 text-xs text-muted-foreground"
+              aria-expanded={showCustomTime}
+              aria-controls="shower-time-field"
+              onClick={() => setShowCustomTime(!showCustomTime)}
+            >
+              {showCustomTime
+                ? <Sunrise className="h-3.5 w-3.5" aria-hidden="true" />
+                : <Pencil className="h-3.5 w-3.5" aria-hidden="true" />}
+              {showCustomTime ? 'Time presets' : 'Custom time'}
+            </Button>
+          </div>
+          <div id="shower-notes-field" className="mb-3 min-w-0 space-y-1.5" hidden={!showNotes}>
+            <Label htmlFor="shower-notes" className="text-xs text-muted-foreground">Notes</Label>
             <textarea
               id="shower-notes"
               value={editNotes}
               maxLength={1000}
+              disabled={isSavingTime || isDeletingShower}
               onChange={(event) => setEditNotes(event.target.value)}
-              className="min-h-20 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              className="block min-h-16 w-full rounded-xl border border-input bg-background px-3 py-2 text-base"
               placeholder="Optional notes"
               data-testid="edit-shower-notes"
             />
           </div>
-          <div className="grid min-w-0 grid-cols-[2.5rem_minmax(0,1fr)_minmax(0,1fr)] gap-2">
-            {showerToEdit ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleDeleteFromEdit}
-                disabled={isDeletingShower || isSavingTime}
-                className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
-                aria-label="Delete shower"
-                data-testid="delete-shower-from-edit"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            ) : (
-              <div aria-hidden="true" />
+          <div className="flex min-w-0 gap-2">
+            {showerToEdit && (
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    disabled={isDeletingShower || isSavingTime}
+                    className="h-11 w-11 shrink-0 rounded-xl border-destructive text-destructive hover:bg-destructive/10 hover:text-destructive"
+                    aria-label="Delete shower"
+                    data-testid="delete-shower-from-edit"
+                  >
+                    <Trash2 className="h-4 w-4" aria-hidden="true" />
+                  </Button>
+                </DialogTrigger>
+                <DialogContent role="alertdialog" className="max-w-sm" data-testid="delete-shower-confirmation">
+                  <DialogHeader>
+                    <DialogTitle>Delete shower?</DialogTitle>
+                    <DialogDescription>
+                      This will permanently delete the shower recorded at {formatTime(new Date(showerToEdit.timestamp))} on {formatDate(date)}.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button variant="outline" disabled={isDeletingShower}>Cancel</Button>
+                    </DialogClose>
+                    <Button
+                      variant="destructive"
+                      onClick={handleDeleteFromEdit}
+                      disabled={isDeletingShower}
+                      data-testid="confirm-delete-shower"
+                    >
+                      {isDeletingShower ? 'Deleting...' : 'Delete shower'}
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             )}
-            <Button
-              variant="outline"
-              onClick={isCreatingShower ? handleUseDefaultTime : handleCancelEditTime}
-              disabled={isSavingTime || isDeletingShower}
-              className="w-full"
-              data-testid="use-default-shower-time"
-            >
-              {isCreatingShower ? 'Use default' : 'Cancel'}
-            </Button>
             <Button
               onClick={handleSaveTime}
               disabled={isSavingTime || isDeletingShower || !editTime}
-              className="w-full"
+              className="h-11 min-w-0 flex-1 rounded-xl"
               data-testid="save-shower-time"
             >
-              {isSavingTime ? 'Saving...' : 'Save time'}
+              {isSavingTime ? 'Saving...' : isCreatingShower ? 'Save shower' : 'Save changes'}
             </Button>
           </div>
         </DialogContent>

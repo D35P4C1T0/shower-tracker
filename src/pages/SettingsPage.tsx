@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, type ChangeEvent } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
@@ -14,7 +14,7 @@ import { useToast } from '@/components/toast'
 import { DEFAULT_SETTINGS } from '@/lib/database-services/default-settings'
 import { formatAppVersion } from '@/lib/app-version'
 import { DatabaseService } from '@/lib/database-service'
-import { Github, User, Bell, BellOff, AlertCircle, Tag, Download, Upload } from 'lucide-react'
+import { Github, User, Bell, BellOff, AlertCircle, Tag, Download, Upload, Moon, CalendarDays, Clock3, Send, Database, ChevronRight, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const MAX_IMPORT_BYTES = 2 * 1024 * 1024
@@ -210,164 +210,111 @@ export function SettingsPage() {
 
 
   if (isLoading) {
-    return <div className="app-fade-in"><SettingsSkeleton /></div>
+    return <SettingsSkeleton />
   }
 
-  const settingRowClass = 'grid min-h-16 grid-cols-1 items-center gap-3 min-[400px]:grid-cols-[minmax(0,1fr)_auto] border-b border-border/60 py-3 last:border-b-0'
-  const controlClass = 'min-w-0 shrink-0 justify-self-start min-[400px]:justify-self-end'
-  const sectionClass = 'grid gap-1 border-b py-5 last:border-b-0 sm:grid-cols-[9rem_minmax(0,1fr)] sm:gap-3'
-  const sectionBodyClass = 'min-w-0 space-y-1'
+  const settingRowClass = 'grid min-h-20 grid-cols-[1.75rem_minmax(0,1fr)_auto] items-center gap-2.5 border-b border-border/60 px-4 py-4 last:border-b-0'
+  const controlClass = 'flex w-24 min-w-0 items-center justify-end gap-2'
+  const iconClass = 'flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary'
+  const headingClass = 'px-4 text-xs font-medium uppercase tracking-widest text-muted-foreground'
+  const descriptionClass = 'mt-1 text-xs leading-relaxed text-muted-foreground'
+  const notificationsSupported = isSupported()
 
   return (
-    <div className="space-y-5 app-fade-in" data-testid="settings-page" data-layout="index">
-      <Card className="app-fade-up app-fade-up-delay-1">
-        <CardHeader className="pb-4">
-          <CardTitle>Settings</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-1">
-          {error && (
-            <div className="p-3 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-md">
-              {error}
-            </div>
-          )}
+    <div className="space-y-6" data-testid="settings-page" data-layout="grouped">
+      <h2 className="px-1 text-2xl font-semibold tracking-tight">Settings</h2>
+      {error && <p role="alert" className="rounded-xl bg-destructive/10 p-4 text-sm text-destructive">{error}</p>}
 
-          {/* Theme Settings */}
-          <div className={sectionClass}>
-            <Label className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Theme</Label>
-            <div className={sectionBodyClass}>
+      <section className="space-y-2" aria-labelledby="theme-settings-heading">
+        <h3 id="theme-settings-heading" className={headingClass}>Theme</h3>
+        <Card className="overflow-hidden app-fade-up app-fade-up-delay-1">
+          <CardContent className="p-0 sm:p-0">
             <div className={settingRowClass}>
-              <div className="min-w-0 space-y-1">
-                <Label>Appearance</Label>
-                <p className="text-sm text-muted-foreground">
-                  Choose your preferred theme
-                </p>
+              <span className={iconClass}><Moon className="h-4 w-4" aria-hidden="true" /></span>
+              <div className="min-w-0">
+                <Label className="font-medium">Appearance</Label>
+                <p className={descriptionClass}>Light, dark, or your device setting.</p>
               </div>
               <div className={controlClass}>
+                <span className="text-xs capitalize text-muted-foreground">{settings.theme}</span>
                 <ThemeSwitcher />
               </div>
             </div>
-            </div>
-          </div>
+          </CardContent>
+        </Card>
+      </section>
 
-          {/* Calendar Settings */}
-          <div className={sectionClass}>
-            <Label className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Calendar</Label>
-            <div className={sectionBodyClass}>
-              <div className={settingRowClass}>
-                <div className="min-w-0 space-y-1">
-                  <Label htmlFor="first-day-of-week">First day of week</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Choose which day starts your week
-                  </p>
-                </div>
-                <Select
-                  value={settings.firstDayOfWeek.toString()}
-                  onValueChange={handleFirstDayOfWeekChange}
-                >
-                  <SelectTrigger id="first-day-of-week" className={cn(controlClass, 'w-28 sm:w-32')}>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">Sunday</SelectItem>
-                    <SelectItem value="1">Monday</SelectItem>
-                  </SelectContent>
-                </Select>
+      <section className="space-y-2" aria-labelledby="calendar-settings-heading">
+        <h3 id="calendar-settings-heading" className={headingClass}>Calendar</h3>
+        <Card className="overflow-hidden app-fade-up app-fade-up-delay-1">
+          <CardContent className="p-0 sm:p-0">
+            <div className={settingRowClass}>
+              <span className={iconClass}><CalendarDays className="h-4 w-4" aria-hidden="true" /></span>
+              <div className="min-w-0">
+                <Label htmlFor="first-day-of-week" className="font-medium">First day of week</Label>
+                <p className={descriptionClass}>Where your calendar week begins.</p>
               </div>
+              <Select value={settings.firstDayOfWeek.toString()} onValueChange={handleFirstDayOfWeekChange}>
+                <SelectTrigger id="first-day-of-week" className="h-11 w-24 rounded-lg">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Sunday</SelectItem>
+                  <SelectItem value="1">Monday</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </div>
+          </CardContent>
+        </Card>
+      </section>
 
-          {/* Notification Settings */}
-          <div className={sectionClass}>
-            <Label className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">Notifications</Label>
-            <div className={sectionBodyClass}>
-              {/* Browser Support Check */}
-              {!isSupported() && (
-                <div className="flex items-center gap-2 p-3 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-md dark:text-amber-400 dark:bg-amber-950/20 dark:border-amber-800">
-                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                  <span>Notifications are not supported in this browser.</span>
+      <section className="space-y-2" aria-labelledby="notification-settings-heading">
+        <h3 id="notification-settings-heading" className={headingClass}>Notifications</h3>
+        <Card className="overflow-hidden app-fade-up app-fade-up-delay-2">
+          <CardContent className="p-0 sm:p-0">
+            {notificationsSupported && (
+              <div className={settingRowClass}>
+                <span className={iconClass}><Bell className="h-4 w-4" aria-hidden="true" /></span>
+                <div className="min-w-0">
+                  <Label className="font-medium">Browser permission</Label>
+                  <p className={descriptionClass}>{getPermissionStatusMessage()}</p>
                 </div>
-              )}
-
-              {/* Permission Status */}
-              {isSupported() && (
-                <div className="space-y-2">
-                  <div className={settingRowClass}>
-                    <div className="min-w-0 space-y-1">
-                      <Label>Notification Permission</Label>
-                      <p className="text-sm text-muted-foreground">
-                        {getPermissionStatusMessage()}
-                      </p>
-                    </div>
-                    <div className={cn(controlClass, 'flex items-center justify-end gap-2')}>
-                      {hasPermission ? (
-                        <div className="flex items-center gap-1 text-green-600 dark:text-green-400">
-                          <Bell className="h-4 w-4" />
-                          <span className="text-sm">Granted</span>
-                        </div>
-                      ) : getPermissionStatus() === 'denied' ? (
-                        <div className="flex items-center gap-1 text-red-600 dark:text-red-400">
-                          <BellOff className="h-4 w-4" />
-                          <span className="text-sm">Denied</span>
-                        </div>
-                      ) : (
-                        <Button
-                          onClick={handleRequestPermission}
-                          size="sm"
-                          variant="outline"
-                        >
-                          <Bell className="h-4 w-4 mr-1" />
-                          Enable
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Test Notification Button */}
-                  {hasPermission && (
-                    <div className="flex justify-start py-2 sm:justify-end">
-                      <Button
-                        onClick={handleTestNotification}
-                        size="sm"
-                        variant="outline"
-                      >
-                        Test Notification
-                      </Button>
-                    </div>
+                <div className={controlClass}>
+                  {hasPermission ? (
+                    <span className="text-sm font-medium text-green-600 dark:text-green-400">Granted</span>
+                  ) : getPermissionStatus() === 'denied' ? (
+                    <span className="flex items-center gap-1 text-sm text-destructive"><BellOff className="h-4 w-4" aria-hidden="true" />Denied</span>
+                  ) : (
+                    <Button onClick={handleRequestPermission} variant="outline" className="h-11 rounded-lg">Enable</Button>
                   )}
                 </div>
-              )}
-
-              {/* Enable/Disable Toggle */}
-              <div className={settingRowClass}>
-                <div className="min-w-0 space-y-1">
-                  <Label htmlFor="notifications-enabled">Enable notifications</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Get reminders while the app is open. Closed-app reminders require Web Push and are not available yet.
-                  </p>
-                </div>
-                <div className={cn(controlClass, 'flex items-center justify-end gap-2')}>
-                  <span className="text-sm font-medium text-muted-foreground">
-                    {settings.notificationsEnabled ? 'On' : 'Off'}
-                  </span>
-                  <Switch
-                    id="notifications-enabled"
-                    data-testid="notification-toggle"
-                    checked={settings.notificationsEnabled}
-                    onCheckedChange={handleNotificationsToggle}
-                    disabled={!isSupported() || (!hasPermission && !settings.notificationsEnabled)}
-                  />
-                </div>
               </div>
-
-              {/* Threshold Setting */}
-              {settings.notificationsEnabled && (
-                <div className={settingRowClass}>
-                  <div className="min-w-0 space-y-1">
-                    <Label htmlFor="notification-threshold">Reminder threshold (days)</Label>
-                    <p className="text-sm text-muted-foreground">
-                      Send reminder after this many days
-                    </p>
-                  </div>
+            )}
+            <div className={settingRowClass}>
+              <span className={iconClass}><Bell className="h-4 w-4" aria-hidden="true" /></span>
+              <div className="min-w-0">
+                <Label htmlFor="notifications-enabled" className="font-medium">Enable notifications</Label>
+                <p className={descriptionClass}>A nudge when it’s been a while.</p>
+              </div>
+              <div className={controlClass}>
+                <span className="text-xs text-muted-foreground">{settings.notificationsEnabled ? 'On' : 'Off'}</span>
+                <Switch
+                  id="notifications-enabled"
+                  data-testid="notification-toggle"
+                  checked={settings.notificationsEnabled}
+                  onCheckedChange={handleNotificationsToggle}
+                  disabled={!notificationsSupported || (!hasPermission && !settings.notificationsEnabled)}
+                />
+              </div>
+            </div>
+            {settings.notificationsEnabled && (
+              <div className={settingRowClass}>
+                <span className={iconClass}><Clock3 className="h-4 w-4" aria-hidden="true" /></span>
+                <div className="min-w-0">
+                  <Label htmlFor="notification-threshold" className="font-medium">Reminder threshold (days)</Label>
+                  <p className={descriptionClass}>Days since your last shower.</p>
+                </div>
+                <div className={controlClass}>
                   <Input
                     id="notification-threshold"
                     type="number"
@@ -376,93 +323,96 @@ export function SettingsPage() {
                     value={notificationThreshold}
                     onBlur={(e) => handleNotificationThresholdChange(e.target.value)}
                     onChange={(e) => setNotificationThreshold(e.target.value)}
-                    className={cn(controlClass, 'w-20 sm:w-24')}
+                    className="h-11 w-20 rounded-lg text-center text-base"
                   />
                 </div>
-              )}
-
-              {/* Fallback Message */}
-              {settings.notificationsEnabled && !hasPermission && fallbackMessage && (
-                <div className="p-3 text-sm text-blue-600 bg-blue-50 border border-blue-200 rounded-md dark:text-blue-400 dark:bg-blue-950/20 dark:border-blue-800">
-                  {fallbackMessage}
+              </div>
+            )}
+            {hasPermission && (
+              <div className={settingRowClass}>
+                <span className={iconClass}><Send className="h-4 w-4" aria-hidden="true" /></span>
+                <div className="min-w-0">
+                  <Label className="font-medium">Test notification</Label>
+                  <p className={descriptionClass}>Try a reminder on this device.</p>
                 </div>
-              )}
-            </div>
-          </div>
+                <div className={controlClass}>
+                  <Button onClick={handleTestNotification} variant="outline" className="h-11 rounded-lg" aria-label="Test Notification">Send</Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        <p className="px-4 text-xs leading-relaxed text-muted-foreground">
+          Reminders work while the app is open. Closed-app reminders require Web Push and are not available yet.
+        </p>
+        {!notificationsSupported && (
+          <p className="flex items-start gap-2 px-4 text-xs leading-relaxed text-muted-foreground">
+            <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+            Notifications are not supported in this browser.
+          </p>
+        )}
+        {settings.notificationsEnabled && !hasPermission && fallbackMessage && (
+          <p className="px-4 text-xs leading-relaxed text-muted-foreground">{fallbackMessage}</p>
+        )}
+      </section>
 
-
-        </CardContent>
-      </Card>
-
-      <Card className="app-fade-up app-fade-up-delay-2">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-semibold">Advanced</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Button
-            variant="outline"
-            className="w-full justify-start"
-            onClick={() => setIsDataDialogOpen(true)}
-          >
-            <Download className="mr-2 h-4 w-4" />
-            Export / Import Data
-          </Button>
-        </CardContent>
-      </Card>
-
-      {/* App Information - Read Only */}
-      <Card className="app-fade-up app-fade-up-delay-2">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg font-semibold">App Information</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2 border-b border-border/50">
-            <div className="flex items-center gap-2 text-sm">
-              <Github className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Repository</span>
-            </div>
-            <a
-              href={repoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-primary hover:underline font-mono break-all text-right"
+      <section className="space-y-2" aria-labelledby="data-settings-heading">
+        <h3 id="data-settings-heading" className={headingClass}>Your data</h3>
+        <Card className="overflow-hidden app-fade-up app-fade-up-delay-2">
+          <CardContent className="p-0 sm:p-0">
+            <Button
+              variant="ghost"
+              className={cn(settingRowClass, 'h-auto w-full whitespace-normal rounded-xl text-left')}
+              onClick={() => setIsDataDialogOpen(true)}
+              aria-label="Export / Import Data"
             >
-              {repoDisplay}
-            </a>
-          </div>
-          
-          <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 py-2 border-b border-border/50">
-            <div className="flex items-center gap-2 text-sm">
-              <User className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Creator</span>
+              <span className={iconClass}><Download className="h-4 w-4" aria-hidden="true" /></span>
+              <span className="min-w-0">
+                <span className="block text-sm font-medium">Export / Import Data</span>
+                <span className={cn(descriptionClass, 'block font-normal')}>Back up or restore your history.</span>
+              </span>
+              <span className={controlClass}><ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" /></span>
+            </Button>
+            <div className={settingRowClass}>
+              <span className={iconClass}><Database className="h-4 w-4" aria-hidden="true" /></span>
+              <div className="min-w-0">
+                <span className="text-sm font-medium">Storage</span>
+                <p className={descriptionClass}>Saved locally on this device.</p>
+              </div>
+              <span className={cn(controlClass, 'text-right text-xs font-medium')} data-testid="storage-type">
+                {DatabaseService.getStorageType?.() ?? 'initializing'}
+              </span>
             </div>
-            <a
-              href={authorProfileUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm text-primary hover:underline font-mono break-all text-right"
-            >
-              {authorHandle}
-            </a>
-          </div>
+          </CardContent>
+        </Card>
+      </section>
 
-          <div className="flex items-center justify-between py-2">
-            <div className="flex items-center gap-2 text-sm">
-              <Tag className="h-4 w-4 text-muted-foreground" />
-              <span className="text-muted-foreground">Version</span>
+      <section className="space-y-2" aria-labelledby="about-settings-heading">
+        <h3 id="about-settings-heading" className={headingClass}>App information</h3>
+        <Card className="overflow-hidden app-fade-up app-fade-up-delay-2">
+          <CardContent className="p-0 sm:p-0">
+            <div className={settingRowClass}>
+              <span className={iconClass}><Github className="h-4 w-4" aria-hidden="true" /></span>
+              <span className="text-sm font-medium">Repository</span>
+              <a href={repoUrl} target="_blank" rel="noopener noreferrer" aria-label={repoDisplay} className={cn(controlClass, 'min-h-11 text-sm text-primary hover:underline')}>
+                GitHub <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />
+              </a>
             </div>
-            <span className="text-sm font-mono text-muted-foreground text-right" data-testid="app-version">
-              {formatAppVersion()}
-            </span>
-          </div>
-          <div className="flex items-center justify-between py-2 border-t border-border/50">
-            <span className="text-sm text-muted-foreground">Storage</span>
-            <span className="text-sm font-mono" data-testid="storage-type">
-              {DatabaseService.getStorageType?.() ?? 'initializing'}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
+            <div className={settingRowClass}>
+              <span className={iconClass}><User className="h-4 w-4" aria-hidden="true" /></span>
+              <span className="text-sm font-medium">Creator</span>
+              <a href={authorProfileUrl} target="_blank" rel="noopener noreferrer" className={cn(controlClass, 'min-h-11 break-all text-right text-xs text-primary hover:underline')}>
+                {authorHandle}
+              </a>
+            </div>
+            <div className={settingRowClass}>
+              <span className={iconClass}><Tag className="h-4 w-4" aria-hidden="true" /></span>
+              <span className="text-sm font-medium">Version</span>
+              <span className={cn(controlClass, 'break-all text-right font-mono text-xs text-muted-foreground')} data-testid="app-version">{formatAppVersion()}</span>
+            </div>
+          </CardContent>
+        </Card>
+      </section>
 
       <Dialog open={isDataDialogOpen} onOpenChange={setIsDataDialogOpen}>
         <DialogContent className="w-[calc(100vw-2rem)] max-w-sm gap-3 p-4">

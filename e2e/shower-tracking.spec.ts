@@ -70,16 +70,56 @@ test('edits notes and deletes a shower from calendar details', async ({ page }) 
   const details = page.getByTestId('shower-details')
   await expect(details).toContainText('1 shower recorded')
   await details.getByRole('button', { name: 'Edit shower', exact: true }).click()
+  await page.getByRole('button', { name: 'Add a note', exact: true }).click()
   await page.getByTestId('edit-shower-notes').fill('After exercise')
   await page.getByTestId('save-shower-time').click()
   await expect(page.getByTestId('edit-time-dialog')).not.toBeVisible()
   await expect(details).toContainText('After exercise')
   await details.getByRole('button', { name: 'Edit shower', exact: true }).click()
   await page.getByTestId('delete-shower-from-edit').click()
+  const confirmation = page.getByRole('alertdialog', { name: 'Delete shower?' })
+  await expect(confirmation).toBeVisible()
+  await confirmation.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await expect(details).toContainText('1 shower recorded')
+  await page.getByTestId('delete-shower-from-edit').click()
+  await page.getByTestId('confirm-delete-shower').click()
   await expect(details).toContainText('No showers recorded')
   await expect(await todayButton(page)).not.toHaveClass(/has-shower/)
   await page.getByRole('button', { name: 'Close details', exact: true }).click()
   await expect(details).not.toBeVisible()
+})
+
+test('keeps the past-day time field inside the dialog on narrow screens', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-08T12:00:00'))
+  await page.getByRole('button', { name: 'Calendar', exact: true }).click()
+  await page.locator('button[data-date="2026-11-06"]').click()
+  await page.getByTestId('add-shower-for-day').click()
+
+  const dialog = page.getByTestId('edit-time-dialog')
+  const time = page.getByTestId('edit-shower-time-input')
+  await expect(time).not.toBeVisible()
+  await page.getByRole('button', { name: 'Custom time', exact: true }).click()
+  await page.getByRole('button', { name: 'Add a note', exact: true }).click()
+  for (const width of [402, 320]) {
+    await page.setViewportSize({ width, height: 874 })
+    await expect(time).toBeVisible()
+    await expect(async () => {
+      const dialogBox = await dialog.boundingBox()
+      expect(Math.abs(dialogBox!.y + dialogBox!.height - 874)).toBeLessThanOrEqual(1)
+      const timeBox = await time.boundingBox()
+      const notesBox = await page.getByTestId('edit-shower-notes').boundingBox()
+      expect(timeBox).not.toBeNull()
+      expect(notesBox).not.toBeNull()
+      expect(Math.abs(timeBox!.x - notesBox!.x)).toBeLessThanOrEqual(1)
+      expect(Math.abs(timeBox!.width - notesBox!.width)).toBeLessThanOrEqual(1)
+      expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+    }).toPass()
+  }
+
+  await time.fill('18:30')
+  await page.getByTestId('save-shower-time').click()
+  await expect(dialog).not.toBeVisible()
+  await expect(page.getByTestId('shower-details')).toContainText('1 shower recorded')
 })
 
 test('records and navigates using the keyboard', async ({ page }) => {
@@ -93,15 +133,93 @@ test('records and navigates using the keyboard', async ({ page }) => {
   await expect(await todayButton(page)).toHaveClass(/has-shower/)
 })
 
+test('saves a preset and notes from the compact shower drawer', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-08T12:00:00'))
+  await page.getByRole('button', { name: 'Calendar', exact: true }).click()
+  await page.locator('button[data-date="2026-11-06"]').click()
+  await page.getByTestId('add-shower-for-day').click()
+  const dialog = page.getByTestId('edit-time-dialog')
+  const note = dialog.getByRole('button', { name: 'Add a note', exact: true })
+  const custom = dialog.getByRole('button', { name: 'Custom time', exact: true })
+  await expect(async () => {
+    const noteBox = await note.boundingBox()
+    const customBox = await custom.boundingBox()
+    expect(noteBox!.y).toBe(customBox!.y)
+    expect(noteBox!.x).toBeLessThan(customBox!.x)
+  }).toPass()
+  const evening = dialog.getByRole('button', { name: 'Evening · 20:00' })
+  expect((await evening.boundingBox())!.height).toBeGreaterThanOrEqual(64)
+  await evening.click()
+  await note.click()
+  await page.getByTestId('edit-shower-notes').fill('After exercise')
+  await dialog.getByRole('button', { name: 'Hide note', exact: true }).click()
+  await page.getByTestId('save-shower-time').click()
+  await expect(dialog).not.toBeVisible()
+  await page.reload()
+  await page.getByRole('button', { name: 'Calendar', exact: true }).click()
+  await page.locator('button[data-date="2026-11-06"]').click()
+  await page.getByRole('button', { name: 'Edit shower', exact: true }).click()
+  await expect(evening).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByTestId('edit-shower-notes')).toHaveValue('After exercise')
+  await expect(page.getByTestId('edit-shower-time-input')).not.toBeVisible()
+})
+
+test('clears preset selection for custom time and dismisses from the drawer handle', async ({ page }) => {
+  await page.clock.setFixedTime(new Date('2026-11-08T12:00:00'))
+  await page.getByRole('button', { name: 'Calendar', exact: true }).click()
+  await page.locator('button[data-date="2026-11-06"]').click()
+  await page.getByTestId('add-shower-for-day').click()
+  const dialog = page.getByTestId('edit-time-dialog')
+  const noon = dialog.getByRole('button', { name: 'Noon · 12:00' })
+  await expect(noon).toHaveAttribute('aria-pressed', 'true')
+  await noon.click()
+  const originalDrawer = await dialog.boundingBox()
+  const selector = page.getByTestId('shower-time-selector')
+  const originalSelector = await selector.boundingBox()
+  await dialog.getByRole('button', { name: 'Custom time', exact: true }).click()
+  await expect(dialog.locator('[aria-pressed="true"]')).toHaveCount(0)
+  await expect(page.getByTestId('edit-shower-time-input')).toHaveValue('12:00')
+  await expect(async () => {
+    const picker = await page.getByTestId('edit-shower-time-input').boundingBox()
+    expect(picker!.height).toBe(64)
+    expect(picker!.x).toBeCloseTo(originalSelector!.x, 0)
+    expect(picker!.width).toBeCloseTo(originalSelector!.width, 0)
+    expect((await dialog.boundingBox())!.height).toBe(originalDrawer!.height)
+  }).toPass()
+  await dialog.getByRole('button', { name: 'Time presets', exact: true }).click()
+  await noon.click()
+  await expect(noon).toHaveAttribute('aria-pressed', 'true')
+  await page.getByTestId('shower-drawer-handle').evaluate(element => {
+    const { x, y, width } = element.getBoundingClientRect()
+    const start = { clientX: x + width / 2, clientY: y + 10 }
+    const end = { clientX: x + width / 2, clientY: y + 90 }
+    for (const [type, touches, changedTouches] of [
+      ['touchstart', [start], [start]],
+      ['touchmove', [end], [end]],
+      ['touchend', [], [end]],
+    ] as const) {
+      const event = new Event(type, { bubbles: true, cancelable: true })
+      Object.defineProperties(event, {
+        touches: { value: touches },
+        changedTouches: { value: changedTouches },
+      })
+      element.dispatchEvent(event)
+    }
+  })
+  await expect(dialog).not.toBeVisible()
+  await expect(page.getByTestId('shower-details')).toContainText('No showers recorded')
+})
+
 test('rejects future shower edits without losing the original', async ({ page }) => {
   await page.clock.setFixedTime(new Date('2026-01-15T12:00:00'))
   await recordShower(page)
   await page.getByRole('button', { name: 'Calendar', exact: true }).click()
   await (await todayButton(page)).click()
   await page.getByRole('button', { name: 'Edit shower', exact: true }).click()
+  await page.getByRole('button', { name: 'Custom time', exact: true }).click()
   await page.getByTestId('edit-shower-time-input').fill('23:59')
   await page.getByTestId('save-shower-time').click()
   await expect(page.getByText('Cannot record a shower in the future', { exact: true })).toBeVisible()
-  await page.getByRole('button', { name: 'Cancel', exact: true }).click()
+  await page.getByRole('button', { name: 'Close', exact: true }).click()
   await expect(page.getByTestId('shower-details')).toContainText('1 shower recorded')
 })

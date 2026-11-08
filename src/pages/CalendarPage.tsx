@@ -70,14 +70,14 @@ export function CalendarPage() {
 
   if (isLoading) {
     return (
-      <div className="space-y-6 app-fade-in">
+      <div className="space-y-6">
         <CalendarSkeleton />
       </div>
     );
   }
 
   return (
-    <div className="space-y-6 app-fade-in">
+    <div className="space-y-6">
       <Calendar
         onDayClick={handleDayClick}
         onTodaySelected={handleTodaySelected}

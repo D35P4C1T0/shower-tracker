@@ -274,6 +274,48 @@
     animation: app-dialog-content-out var(--motion-duration-fast) var(--motion-ease-standard) both;
   }
 
+  @keyframes shower-drawer-in {
+    from { transform: translate(-50%, 100%); }
+    to { transform: translate(-50%, 0); }
+  }
+
+  @keyframes shower-drawer-out {
+    from { transform: translate(-50%, 0); }
+    to { transform: translate(-50%, 100%); }
+  }
+
+  .app-dialog-content.app-shower-drawer[data-state="open"] {
+    animation-name: shower-drawer-in;
+  }
+
+  .app-dialog-content.app-shower-drawer[data-state="closed"] {
+    animation-name: shower-drawer-out;
+  }
+
+  .app-shower-drawer > button:last-child {
+    top: 2.75rem;
+  }
+
+  .shower-time-track {
+    transition: transform var(--motion-duration-base) var(--motion-ease-standard);
+  }
+
+  /* Keep the outgoing panel visible until it finishes sliding out. */
+  .shower-time-panel {
+    transition: visibility 0s var(--motion-duration-base);
+  }
+
+  .shower-time-panel[aria-hidden="false"] {
+    transition-delay: 0s;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .shower-time-track,
+    .shower-time-panel {
+      transition: none;
+    }
+  }
+
   .calendar-month-enter-forward {
     animation: calendar-month-enter-forward var(--motion-duration-base) var(--motion-ease-standard) both;
   }

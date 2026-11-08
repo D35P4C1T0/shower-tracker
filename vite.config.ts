@@ -60,7 +60,7 @@ export default defineConfig(({ mode }) => {
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'masked-icon.svg', 'notification-sw.js'],
       workbox: {
-        importScripts: ['notification-sw.js'],
+        importScripts: ['notification-sw.js', 'release-update-sw.js'],
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
         maximumFileSizeToCacheInBytes: 5000000, // 5MB
         cleanupOutdatedCaches: true,

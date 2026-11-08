@@ -9,7 +9,6 @@ import { OfflineIndicator } from '@/components/offline-indicator'
 import { ErrorBoundary } from '@/components/error-boundary'
 import { ToastProvider } from '@/components/toast'
 import { useNotifications } from '@/hooks/useNotifications'
-import { cn } from '@/lib/utils'
 import { getPageForSwipe, getPageFromSearch, getUrlForPage, type AppPage } from '@/lib/page-navigation'
 import { OnboardingDialog } from '@/components/onboarding-dialog'
 
@@ -88,9 +87,7 @@ function App() {
         >
           <div {...swipeHandlers} className="touch-pan-y">
             <div
-              className={cn(
-                'motion-safe:animate-in motion-safe:fade-in-0 motion-safe:duration-150 motion-reduce:animate-none'
-              )}
+              className="app-fade-in"
               key={currentPage}
             >
               {renderCurrentPage(currentPage)}

@@ -13,7 +13,7 @@ export function ShowerInsights({ showers }: { showers: ShowerEntry[] }) {
   ]
 
   return (
-    <Card data-testid="shower-insights">
+    <Card className="app-fade-up app-fade-up-delay-2" data-testid="shower-insights">
       <CardHeader><CardTitle>Insights</CardTitle></CardHeader>
       <CardContent className="grid grid-cols-2 gap-3">
         {values.map(([label, value]) => (

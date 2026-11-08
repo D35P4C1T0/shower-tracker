@@ -429,7 +429,7 @@ export function Calendar({ onDayClick, onTodaySelected, refreshTrigger = 0 }: Ca
 
   return (
     <>
-      <Card data-testid="calendar" aria-busy={isMonthLoading}>
+      <Card className="app-fade-up app-fade-up-delay-1" data-testid="calendar" aria-busy={isMonthLoading}>
         <CardHeader className="p-3 sm:p-6">
           <div className="flex items-center justify-between">
             <button
