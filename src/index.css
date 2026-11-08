@@ -296,6 +296,12 @@
     top: 2.75rem;
   }
 
+  .shower-time-selector {
+    overflow: hidden;
+    /* Prevent mobile Chrome from scrolling to the offscreen picker. */
+    overflow: clip;
+  }
+
   .shower-time-track {
     transition: transform var(--motion-duration-base) var(--motion-ease-standard);
   }

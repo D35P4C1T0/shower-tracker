@@ -318,7 +318,7 @@ export function ShowerDetails({ date, showers, onClose, onShowersChanged }: Show
               {formatDate(date)}
             </DialogDescription>
           </DialogHeader>
-          <div className="h-16 min-w-0 overflow-hidden rounded-xl" data-testid="shower-time-selector">
+          <div className="shower-time-selector h-16 min-w-0 rounded-xl" data-testid="shower-time-selector">
             <div
               className="shower-time-track flex h-full w-[200%]"
               style={{ transform: showCustomTime ? 'translateX(-50%)' : 'translateX(0)' }}
