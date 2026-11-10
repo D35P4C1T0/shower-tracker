@@ -26,7 +26,7 @@ test('keeps both online and offline records after reconnecting', async ({ page, 
   await context.setOffline(true)
   // Remove the earlier toast so the second assertion must observe the new write.
   await page.getByRole('button', { name: 'Close notification', exact: true }).click()
-  await expect(page.getByTestId('toast')).toHaveCount(0)
+  await expect(page.locator('[data-sonner-toast]')).toHaveCount(0)
   await recordShower(page)
   await context.setOffline(false)
   await page.reload()
@@ -104,12 +104,12 @@ test('reports fallback storage quota errors without losing saved history', async
   await recordShower(page)
   const original = await page.evaluate(() => localStorage.getItem('shower-tracker-data-v1'))
   await page.getByRole('button', { name: 'Close notification', exact: true }).click()
-  await expect(page.getByTestId('toast')).toHaveCount(0)
+  await expect(page.locator('[data-sonner-toast]')).toHaveCount(0)
   await page.evaluate(() => {
     Storage.prototype.setItem = () => { throw new DOMException('Storage full', 'QuotaExceededError') }
   })
   await page.getByRole('button', { name: 'Record shower', exact: true }).click()
-  await expect(page.getByTestId('toast').filter({ hasText: 'Failed to record shower' })).toBeVisible()
+  await expect(page.locator('[data-sonner-toast]').filter({ hasText: 'Failed to record shower' })).toBeVisible()
   expect(await page.evaluate(() => localStorage.getItem('shower-tracker-data-v1'))).toBe(original)
   expect((await exportData(page)).showers).toHaveLength(1)
 })

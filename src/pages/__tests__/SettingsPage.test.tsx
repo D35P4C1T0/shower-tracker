@@ -86,9 +86,9 @@ describe('SettingsPage', () => {
     render(<SettingsPage />)
 
     expect(screen.queryByText('Customize your shower tracking experience')).not.toBeInTheDocument()
-    expect(screen.getByText('Theme')).toHaveClass('uppercase')
-    expect(screen.getByText('Calendar')).toHaveClass('uppercase')
-    expect(screen.getByText('Notifications')).toHaveClass('uppercase')
+    expect(screen.getByText('Theme')).toHaveClass('text-lg', 'font-semibold')
+    expect(screen.getByText('Calendar')).toHaveClass('text-lg', 'font-semibold')
+    expect(screen.getByText('Notifications')).toHaveClass('text-lg', 'font-semibold')
 
     const repoLink = screen.getByRole('link', { name: 'example-org/example-repo' })
     const authorLink = screen.getByRole('link', { name: '@example-user' })

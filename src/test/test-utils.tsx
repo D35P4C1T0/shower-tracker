@@ -26,11 +26,11 @@ export const mockSettings = {
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
   return (
     <AppProvider>
-      <ToastProvider>
-        <ThemeProvider>
+      <ThemeProvider>
+        <ToastProvider>
           {children}
-        </ThemeProvider>
-      </ToastProvider>
+        </ToastProvider>
+      </ThemeProvider>
     </AppProvider>
   )
 }

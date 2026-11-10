@@ -128,28 +128,6 @@
     }
   }
 
-  @keyframes app-toast-in-right {
-    from {
-      opacity: 0;
-      transform: translateX(18px);
-    }
-    to {
-      opacity: 1;
-      transform: translateX(0);
-    }
-  }
-
-  @keyframes app-toast-out-right {
-    from {
-      opacity: 1;
-      transform: translateX(0);
-    }
-    to {
-      opacity: 0;
-      transform: translateX(18px);
-    }
-  }
-
   @keyframes app-dialog-overlay-in {
     from {
       opacity: 0;
@@ -250,14 +228,6 @@
     animation-delay: 80ms;
   }
 
-  .app-toast-in-right {
-    animation: app-toast-in-right var(--motion-duration-fast) var(--motion-ease-standard) both;
-  }
-
-  .app-toast-out-right {
-    animation: app-toast-out-right var(--motion-duration-fast) var(--motion-ease-standard) both;
-  }
-
   .app-dialog-overlay[data-state="open"] {
     animation: app-dialog-overlay-in var(--motion-duration-fast) var(--motion-ease-standard) both;
   }
@@ -274,26 +244,12 @@
     animation: app-dialog-content-out var(--motion-duration-fast) var(--motion-ease-standard) both;
   }
 
-  @keyframes shower-drawer-in {
-    from { transform: translate(-50%, 100%); }
-    to { transform: translate(-50%, 0); }
-  }
-
-  @keyframes shower-drawer-out {
-    from { transform: translate(-50%, 0); }
-    to { transform: translate(-50%, 100%); }
-  }
-
-  .app-dialog-content.app-shower-drawer[data-state="open"] {
-    animation-name: shower-drawer-in;
-  }
-
-  .app-dialog-content.app-shower-drawer[data-state="closed"] {
-    animation-name: shower-drawer-out;
-  }
-
-  .app-shower-drawer > button:last-child {
-    top: 2.75rem;
+  @media (prefers-reduced-motion: reduce) {
+    [data-vaul-drawer],
+    [data-vaul-overlay] {
+      animation: none !important;
+      transition: none !important;
+    }
   }
 
   .shower-time-selector {

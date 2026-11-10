@@ -11,6 +11,27 @@ test('records a shower and displays it in calendar @smoke', async ({ page }) => 
   await expect(await todayButton(page)).toHaveClass(/has-shower/)
 })
 
+test('keeps the selected shower day highlighted after focus moves away', async ({ page }) => {
+  await recordShower(page)
+  await page.getByRole('button', { name: 'Calendar', exact: true }).click()
+  const today = await todayButton(page)
+  await today.click()
+  await expect(today).toHaveAttribute('aria-pressed', 'true')
+  await expect(today).toHaveClass(/has-shower/)
+  await page.getByTestId('calendar-month-trigger').focus()
+  await expect(today).not.toBeFocused()
+  await expect(today).toHaveClass(/(?:^| )ring-2(?: |$)/)
+  expect(await today.evaluate(element => getComputedStyle(element).boxShadow)).toContain('2px')
+
+  const otherDay = page.locator('button[data-date][aria-pressed="false"]').first()
+  await otherDay.click()
+  await expect(today).toHaveAttribute('aria-pressed', 'false')
+  await expect(today).not.toHaveClass(/(?:^| )ring-2(?: |$)/)
+  await expect(page.locator('button[data-date][aria-pressed="true"]')).toHaveCount(1)
+  await page.getByRole('button', { name: 'Close details', exact: true }).click()
+  await expect(page.locator('button[data-date][aria-pressed="true"]')).toHaveCount(0)
+})
+
 test('persists theme and calendar settings after reload', async ({ page }) => {
   await page.getByRole('button', { name: 'Settings', exact: true }).click()
   const settings = page.getByTestId('settings-page')
@@ -165,7 +186,7 @@ test('saves a preset and notes from the compact shower drawer', async ({ page })
 })
 
 test('clears preset selection for custom time and dismisses from the drawer handle', async ({ page }) => {
-  await page.clock.setFixedTime(new Date('2026-11-08T12:00:00'))
+  await page.clock.install({ time: new Date('2026-11-08T12:00:00') })
   await page.getByRole('button', { name: 'Calendar', exact: true }).click()
   await page.locator('button[data-date="2026-11-06"]').click()
   await page.getByTestId('add-shower-for-day').click()
@@ -174,6 +195,7 @@ test('clears preset selection for custom time and dismisses from the drawer hand
   await expect(noon).toHaveAttribute('aria-pressed', 'true')
   await noon.click()
   const originalDrawer = await dialog.boundingBox()
+  expect(originalDrawer!.height).toBeGreaterThanOrEqual(page.viewportSize()!.height * 0.4 - 1)
   const selector = page.getByTestId('shower-time-selector')
   const originalSelector = await selector.boundingBox()
   await dialog.getByRole('button', { name: 'Custom time', exact: true }).click()
@@ -189,23 +211,14 @@ test('clears preset selection for custom time and dismisses from the drawer hand
   await dialog.getByRole('button', { name: 'Time presets', exact: true }).click()
   await noon.click()
   await expect(noon).toHaveAttribute('aria-pressed', 'true')
-  await page.getByTestId('shower-drawer-handle').evaluate(element => {
-    const { x, y, width } = element.getBoundingClientRect()
-    const start = { clientX: x + width / 2, clientY: y + 10 }
-    const end = { clientX: x + width / 2, clientY: y + 90 }
-    for (const [type, touches, changedTouches] of [
-      ['touchstart', [start], [start]],
-      ['touchmove', [end], [end]],
-      ['touchend', [], [end]],
-    ] as const) {
-      const event = new Event(type, { bubbles: true, cancelable: true })
-      Object.defineProperties(event, {
-        touches: { value: touches },
-        changedTouches: { value: changedTouches },
-      })
-      element.dispatchEvent(event)
-    }
-  })
+  await expect.poll(() => dialog.evaluate(element => element.getAnimations().length)).toBe(0)
+  const handle = await page.getByTestId('shower-drawer-handle').boundingBox()
+  const x = handle!.x + handle!.width / 2
+  const y = handle!.y + handle!.height / 2
+  await page.mouse.move(x, y)
+  await page.mouse.down()
+  await page.mouse.move(x, y + 180, { steps: 12 })
+  await page.mouse.up()
   await expect(dialog).not.toBeVisible()
   await expect(page.getByTestId('shower-details')).toContainText('No showers recorded')
 })

@@ -244,28 +244,20 @@ describe('ShowerDetails', () => {
     expect(screen.getByRole('button', { name: 'Evening · 20:00' })).toBeDisabled()
   })
 
-  it.each([
-    ['down', 0, 80, true],
-    ['up', 0, -80, false],
-    ['sideways', 80, 10, false],
-    ['a small movement', 0, 10, false],
-  ])('only dismisses the drawer for a downward handle swipe: %s', async (_direction, x, y, closes) => {
+  it('discards an unsaved draft when the drawer closes', async () => {
     const addShower = vi.fn()
     useShowersMock.mockReturnValue({ addShower, deleteShower: vi.fn(), updateShower: vi.fn() })
     useToastMock.mockReturnValue({ success: vi.fn(), error: vi.fn() })
     render(<ShowerDetails date={new Date(2026, 3, 21)} showers={[]} />)
     fireEvent.click(screen.getByTestId('add-shower-for-day'))
-    const handle = screen.getByTestId('shower-drawer-handle')
-    const start = { clientX: 100, clientY: 100 }
-    const end = { clientX: 100 + x, clientY: 100 + y }
-    fireEvent.touchStart(handle, { touches: [start], changedTouches: [start] })
-    fireEvent.touchMove(handle, { touches: [end], changedTouches: [end] })
-    fireEvent.touchEnd(handle, { touches: [], changedTouches: [end] })
-    await waitFor(() => {
-      if (closes) expect(screen.queryByTestId('edit-time-dialog')).not.toBeInTheDocument()
-      else expect(screen.getByTestId('edit-time-dialog')).toBeVisible()
-    })
+    fireEvent.click(screen.getByRole('button', { name: 'Add a note' }))
+    fireEvent.change(screen.getByTestId('edit-shower-notes'), { target: { value: 'Unsaved note' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }))
+    expect(screen.getByTestId('edit-time-dialog')).toHaveAttribute('data-state', 'closed')
     expect(addShower).not.toHaveBeenCalled()
+    fireEvent.click(screen.getByTestId('add-shower-for-day'))
+    expect(screen.getByTestId('edit-shower-notes')).toHaveValue('')
+    expect(screen.getByRole('button', { name: 'Noon · 12:00' })).toHaveAttribute('aria-pressed', 'true')
   })
 
   it('opens existing notes and preserves the time when editing notes', async () => {

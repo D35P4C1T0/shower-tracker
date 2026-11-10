@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect, type ChangeEvent } from 'react'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardTitle } from '@/components/ui/card'
 import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Input } from '@/components/ui/input'
@@ -216,8 +216,7 @@ export function SettingsPage() {
   const settingRowClass = 'grid min-h-20 grid-cols-[1.75rem_minmax(0,1fr)_auto] items-center gap-2.5 border-b border-border/60 px-4 py-4 last:border-b-0'
   const controlClass = 'flex w-24 min-w-0 items-center justify-end gap-2'
   const iconClass = 'flex h-7 w-7 items-center justify-center rounded-lg bg-primary/10 text-primary'
-  const headingClass = 'px-4 text-xs font-medium uppercase tracking-widest text-muted-foreground'
-  const descriptionClass = 'mt-1 text-xs leading-relaxed text-muted-foreground'
+  const descriptionClass = 'mt-1 text-sm leading-relaxed text-muted-foreground'
   const notificationsSupported = isSupported()
 
   return (
@@ -226,17 +225,17 @@ export function SettingsPage() {
       {error && <p role="alert" className="rounded-xl bg-destructive/10 p-4 text-sm text-destructive">{error}</p>}
 
       <section className="space-y-2" aria-labelledby="theme-settings-heading">
-        <h3 id="theme-settings-heading" className={headingClass}>Theme</h3>
+        <CardTitle id="theme-settings-heading" className="px-4">Theme</CardTitle>
         <Card className="overflow-hidden app-fade-up app-fade-up-delay-1">
           <CardContent className="p-0 sm:p-0">
             <div className={settingRowClass}>
               <span className={iconClass}><Moon className="h-4 w-4" aria-hidden="true" /></span>
               <div className="min-w-0">
-                <Label className="font-medium">Appearance</Label>
+                <Label className="font-medium leading-5">Appearance</Label>
                 <p className={descriptionClass}>Light, dark, or your device setting.</p>
               </div>
               <div className={controlClass}>
-                <span className="text-xs capitalize text-muted-foreground">{settings.theme}</span>
+                <span className="text-sm capitalize text-muted-foreground">{settings.theme}</span>
                 <ThemeSwitcher />
               </div>
             </div>
@@ -245,13 +244,13 @@ export function SettingsPage() {
       </section>
 
       <section className="space-y-2" aria-labelledby="calendar-settings-heading">
-        <h3 id="calendar-settings-heading" className={headingClass}>Calendar</h3>
+        <CardTitle id="calendar-settings-heading" className="px-4">Calendar</CardTitle>
         <Card className="overflow-hidden app-fade-up app-fade-up-delay-1">
           <CardContent className="p-0 sm:p-0">
             <div className={settingRowClass}>
               <span className={iconClass}><CalendarDays className="h-4 w-4" aria-hidden="true" /></span>
               <div className="min-w-0">
-                <Label htmlFor="first-day-of-week" className="font-medium">First day of week</Label>
+                <Label htmlFor="first-day-of-week" className="font-medium leading-5">First day of week</Label>
                 <p className={descriptionClass}>Where your calendar week begins.</p>
               </div>
               <Select value={settings.firstDayOfWeek.toString()} onValueChange={handleFirstDayOfWeekChange}>
@@ -269,14 +268,14 @@ export function SettingsPage() {
       </section>
 
       <section className="space-y-2" aria-labelledby="notification-settings-heading">
-        <h3 id="notification-settings-heading" className={headingClass}>Notifications</h3>
+        <CardTitle id="notification-settings-heading" className="px-4">Notifications</CardTitle>
         <Card className="overflow-hidden app-fade-up app-fade-up-delay-2">
           <CardContent className="p-0 sm:p-0">
             {notificationsSupported && (
               <div className={settingRowClass}>
                 <span className={iconClass}><Bell className="h-4 w-4" aria-hidden="true" /></span>
                 <div className="min-w-0">
-                  <Label className="font-medium">Browser permission</Label>
+                  <Label className="font-medium leading-5">Browser permission</Label>
                   <p className={descriptionClass}>{getPermissionStatusMessage()}</p>
                 </div>
                 <div className={controlClass}>
@@ -293,11 +292,11 @@ export function SettingsPage() {
             <div className={settingRowClass}>
               <span className={iconClass}><Bell className="h-4 w-4" aria-hidden="true" /></span>
               <div className="min-w-0">
-                <Label htmlFor="notifications-enabled" className="font-medium">Enable notifications</Label>
+                <Label htmlFor="notifications-enabled" className="font-medium leading-5">Enable notifications</Label>
                 <p className={descriptionClass}>A nudge when it’s been a while.</p>
               </div>
               <div className={controlClass}>
-                <span className="text-xs text-muted-foreground">{settings.notificationsEnabled ? 'On' : 'Off'}</span>
+                <span className="text-sm text-muted-foreground">{settings.notificationsEnabled ? 'On' : 'Off'}</span>
                 <Switch
                   id="notifications-enabled"
                   data-testid="notification-toggle"
@@ -311,7 +310,7 @@ export function SettingsPage() {
               <div className={settingRowClass}>
                 <span className={iconClass}><Clock3 className="h-4 w-4" aria-hidden="true" /></span>
                 <div className="min-w-0">
-                  <Label htmlFor="notification-threshold" className="font-medium">Reminder threshold (days)</Label>
+                  <Label htmlFor="notification-threshold" className="font-medium leading-5">Reminder threshold (days)</Label>
                   <p className={descriptionClass}>Days since your last shower.</p>
                 </div>
                 <div className={controlClass}>
@@ -332,7 +331,7 @@ export function SettingsPage() {
               <div className={settingRowClass}>
                 <span className={iconClass}><Send className="h-4 w-4" aria-hidden="true" /></span>
                 <div className="min-w-0">
-                  <Label className="font-medium">Test notification</Label>
+                  <Label className="font-medium leading-5">Test notification</Label>
                   <p className={descriptionClass}>Try a reminder on this device.</p>
                 </div>
                 <div className={controlClass}>
@@ -342,27 +341,28 @@ export function SettingsPage() {
             )}
           </CardContent>
         </Card>
-        <p className="px-4 text-xs leading-relaxed text-muted-foreground">
-          Reminders work while the app is open. Closed-app reminders require Web Push and are not available yet.
-        </p>
+        <details className="px-4 text-sm text-muted-foreground">
+          <summary className="w-fit cursor-pointer rounded-sm py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">About reminders</summary>
+          <p className="mt-2 leading-relaxed">Reminders work while the app is open. Closed-app reminders require Web Push and are not available yet.</p>
+        </details>
         {!notificationsSupported && (
-          <p className="flex items-start gap-2 px-4 text-xs leading-relaxed text-muted-foreground">
+          <p className="flex items-start gap-2 px-4 text-sm leading-relaxed text-muted-foreground">
             <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             Notifications are not supported in this browser.
           </p>
         )}
         {settings.notificationsEnabled && !hasPermission && fallbackMessage && (
-          <p className="px-4 text-xs leading-relaxed text-muted-foreground">{fallbackMessage}</p>
+          <p className="px-4 text-sm leading-relaxed text-muted-foreground">{fallbackMessage}</p>
         )}
       </section>
 
       <section className="space-y-2" aria-labelledby="data-settings-heading">
-        <h3 id="data-settings-heading" className={headingClass}>Your data</h3>
+        <CardTitle id="data-settings-heading" className="px-4">Your data</CardTitle>
         <Card className="overflow-hidden app-fade-up app-fade-up-delay-2">
           <CardContent className="p-0 sm:p-0">
             <Button
               variant="ghost"
-              className={cn(settingRowClass, 'h-auto w-full whitespace-normal rounded-xl text-left')}
+              className={cn(settingRowClass, 'h-auto w-full whitespace-normal rounded-none text-left')}
               onClick={() => setIsDataDialogOpen(true)}
               aria-label="Export / Import Data"
             >
@@ -379,16 +379,13 @@ export function SettingsPage() {
                 <span className="text-sm font-medium">Storage</span>
                 <p className={descriptionClass}>Saved locally on this device.</p>
               </div>
-              <span className={cn(controlClass, 'text-right text-xs font-medium')} data-testid="storage-type">
-                {DatabaseService.getStorageType?.() ?? 'initializing'}
-              </span>
             </div>
           </CardContent>
         </Card>
       </section>
 
       <section className="space-y-2" aria-labelledby="about-settings-heading">
-        <h3 id="about-settings-heading" className={headingClass}>App information</h3>
+        <CardTitle id="about-settings-heading" className="px-4">App information</CardTitle>
         <Card className="overflow-hidden app-fade-up app-fade-up-delay-2">
           <CardContent className="p-0 sm:p-0">
             <div className={settingRowClass}>
@@ -401,97 +398,115 @@ export function SettingsPage() {
             <div className={settingRowClass}>
               <span className={iconClass}><User className="h-4 w-4" aria-hidden="true" /></span>
               <span className="text-sm font-medium">Creator</span>
-              <a href={authorProfileUrl} target="_blank" rel="noopener noreferrer" className={cn(controlClass, 'min-h-11 break-all text-right text-xs text-primary hover:underline')}>
+              <a href={authorProfileUrl} target="_blank" rel="noopener noreferrer" className={cn(controlClass, 'min-h-11 break-all text-right text-sm text-primary hover:underline')}>
                 {authorHandle}
               </a>
             </div>
             <div className={settingRowClass}>
               <span className={iconClass}><Tag className="h-4 w-4" aria-hidden="true" /></span>
               <span className="text-sm font-medium">Version</span>
-              <span className={cn(controlClass, 'break-all text-right font-mono text-xs text-muted-foreground')} data-testid="app-version">{formatAppVersion()}</span>
+              <span className="whitespace-nowrap text-right text-sm text-muted-foreground" data-testid="app-version">{formatAppVersion()}</span>
             </div>
           </CardContent>
         </Card>
       </section>
 
       <Dialog open={isDataDialogOpen} onOpenChange={setIsDataDialogOpen}>
-        <DialogContent className="w-[calc(100vw-2rem)] max-w-sm gap-3 p-4">
-          <DialogHeader className="space-y-1 text-left">
-            <DialogTitle className="text-base">Export / Import Data</DialogTitle>
-            <DialogDescription className="text-xs">
-              Import replaces all local shower data on this device.
+        <DialogContent className="w-[calc(100vw-2rem)] max-w-sm grid-cols-[minmax(0,1fr)] gap-5 rounded-2xl p-5 sm:p-6">
+          <DialogHeader className="space-y-2 text-left">
+            <DialogTitle>Export / Import Data</DialogTitle>
+            <DialogDescription className="text-sm leading-relaxed">
+              Keep a backup or restore a previous export.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-3">
-            <Button
-              variant="outline"
-              onClick={handleExportData}
-              disabled={isExportingData || isImportingData}
-              data-testid="export-data"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              {isExportingData ? 'Exporting...' : 'Export JSON'}
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleExportCsv}
-              disabled={isExportingData || isImportingData}
-              data-testid="export-csv"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Export CSV
-            </Button>
-
-            <div className="grid gap-2">
-              <Label htmlFor="import-data-file">Import JSON</Label>
-              <Input
-                ref={importFileInputRef}
-                id="import-data-file"
-                type="file"
-                accept="application/json,.json"
-                onChange={handleImportFile}
-                disabled={isImportingData}
-                className="sr-only"
-                data-testid="import-data-file"
-              />
+          <section className="min-w-0 space-y-3" aria-labelledby="export-data-heading">
+            <h3 id="export-data-heading" className="text-sm font-medium text-muted-foreground">Export</h3>
+            <div className="grid grid-cols-2 gap-2">
               <Button
-                type="button"
                 variant="outline"
-                onClick={() => importFileInputRef.current?.click()}
-                disabled={isImportingData}
-                className="w-full justify-center text-center"
-                data-testid="choose-import-file"
+                onClick={handleExportData}
+                disabled={isExportingData || isImportingData}
+                className="h-auto min-w-0 flex-col items-start gap-2 rounded-xl bg-muted/30 p-3 text-left"
+                data-testid="export-data"
               >
-                <span className="truncate">
-                  {importFileName || 'Choose JSON file'}
-                </span>
+                <Download className="h-4 w-4 text-primary" aria-hidden="true" />
+                <span>{isExportingData ? 'Exporting...' : 'Export JSON'}</span>
+                <span className="text-xs font-normal text-muted-foreground">Full backup</span>
               </Button>
+              <Button
+                variant="outline"
+                onClick={handleExportCsv}
+                disabled={isExportingData || isImportingData}
+                className="h-auto min-w-0 flex-col items-start gap-2 rounded-xl bg-muted/30 p-3 text-left"
+                data-testid="export-csv"
+              >
+                <Download className="h-4 w-4 text-primary" aria-hidden="true" />
+                <span>Export CSV</span>
+                <span className="text-xs font-normal text-muted-foreground">Spreadsheet</span>
+              </Button>
+            </div>
+          </section>
+
+          <section className="min-w-0 space-y-3 border-t border-border/60 pt-5" aria-labelledby="import-data-heading">
+            <h3 id="import-data-heading" className="text-sm font-medium text-muted-foreground">Import JSON</h3>
+            <Input
+              ref={importFileInputRef}
+              id="import-data-file"
+              type="file"
+              accept="application/json,.json"
+              aria-label="Import JSON file"
+              onChange={handleImportFile}
+              disabled={isImportingData}
+              className="hidden"
+              data-testid="import-data-file"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => importFileInputRef.current?.click()}
+              disabled={isImportingData}
+              className="h-14 w-full min-w-0 justify-center gap-2 rounded-xl border-dashed bg-muted/20 px-3 text-center"
+              data-testid="choose-import-file"
+            >
+              <Upload className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+              <span className="min-w-0 truncate">{importFileName || 'Choose JSON file'}</span>
+            </Button>
+            <p className="text-center text-sm text-muted-foreground">JSON exports up to 2 MB</p>
+            <div className="min-w-0 space-y-2">
+              <Label htmlFor="import-data-text" className="text-sm text-muted-foreground">Or paste your export</Label>
               <textarea
+                id="import-data-text"
                 value={importText}
                 onChange={(event) => setImportText(event.target.value)}
-                className="min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                className="block h-24 min-h-24 w-full min-w-0 max-w-full resize-y rounded-xl border border-input bg-background/60 px-3 py-2.5 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 placeholder="Paste exported JSON"
                 disabled={isImportingData}
                 data-testid="import-data-text"
               />
             </div>
-          </div>
+            <p className="flex items-start gap-2 rounded-lg bg-amber-500/10 p-3 text-sm leading-relaxed text-amber-800 dark:text-amber-200">
+              <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              Import replaces all local shower data on this device.
+            </p>
+          </section>
 
-          <DialogFooter className="grid grid-cols-2 gap-2 space-x-0 sm:space-x-0">
+          <DialogFooter className="grid grid-cols-2 gap-2">
             <Button
               variant="outline"
+              className="h-11 rounded-xl"
               onClick={() => setIsDataDialogOpen(false)}
               disabled={isImportingData}
             >
               Cancel
             </Button>
             <Button
+              className="h-11 rounded-xl"
               onClick={handleImportData}
               disabled={isImportingData || !importText.trim()}
               data-testid="import-data"
             >
-              <Upload className="mr-2 h-4 w-4" />
+              <Upload className="mr-2 h-4 w-4" aria-hidden="true" />
               {isImportingData ? 'Importing...' : 'Import'}
             </Button>
           </DialogFooter>

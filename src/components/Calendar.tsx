@@ -24,6 +24,7 @@ import {
 import { cn } from '../lib/utils';
 
 interface CalendarProps {
+  selectedDate?: Date | null;
   onDayClick?: (date: Date, showers: ShowerEntry[]) => void;
   onTodaySelected?: (date: Date, showers: ShowerEntry[]) => void;
   refreshTrigger?: number;
@@ -36,6 +37,7 @@ interface LoadMonthOptions {
 type MonthTransitionDirection = 'forward' | 'backward';
 
 interface CalendarGridProps {
+  selectedDate?: Date | null;
   dayNames: string[];
   calendarGrid: Array<Date | null>;
   hasShowers: (date: Date) => boolean;
@@ -64,6 +66,7 @@ interface MonthPickerDialogProps {
 }
 
 function CalendarGrid({
+  selectedDate,
   dayNames,
   calendarGrid,
   hasShowers,
@@ -93,15 +96,17 @@ function CalendarGrid({
               <button
                 onClick={() => onDayClick(date)}
                 data-date={getLocalDateKey(date)}
+                aria-pressed={date.toDateString() === selectedDate?.toDateString()}
                 className={cn(
                   'w-full h-full rounded-md border-2 border-transparent',
                   'flex flex-col items-center justify-center',
                   'text-sm transition-colors',
                   'hover:bg-accent hover:text-accent-foreground',
-                  'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+                  'focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-card',
                   isToday(date) && 'border-primary bg-primary/10',
                   hasShowers(date) && 'bg-blue-100 dark:bg-blue-900/30 has-shower',
-                  hasShowers(date) && isToday(date) && 'bg-primary/20'
+                  hasShowers(date) && isToday(date) && 'bg-primary/20',
+                  date.toDateString() === selectedDate?.toDateString() && 'ring-2 ring-ring ring-offset-2'
                 )}
                 title={
                   hasShowers(date)
@@ -216,7 +221,7 @@ function MonthPickerDialog({
   );
 }
 
-export function Calendar({ onDayClick, onTodaySelected, refreshTrigger = 0 }: CalendarProps) {
+export function Calendar({ selectedDate, onDayClick, onTodaySelected, refreshTrigger = 0 }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [monthTransition, setMonthTransition] = useState<{
     direction: MonthTransitionDirection;
@@ -506,6 +511,7 @@ export function Calendar({ onDayClick, onTodaySelected, refreshTrigger = 0 }: Ca
         </CardHeader>
         <CardContent className="p-3 pt-0 sm:p-6 sm:pt-0">
           <CalendarGrid
+            selectedDate={selectedDate}
             dayNames={dayNames}
             calendarGrid={calendarGrid}
             hasShowers={hasShowers}

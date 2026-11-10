@@ -79,6 +79,7 @@ export function CalendarPage() {
   return (
     <div className="space-y-6">
       <Calendar
+        selectedDate={selectedDate}
         onDayClick={handleDayClick}
         onTodaySelected={handleTodaySelected}
         refreshTrigger={calendarRefreshTrigger}

@@ -87,3 +87,26 @@ test('new version prompts for an update and preserves another app cache', async 
     return (await cache.match('/another-app-document'))?.text()
   })).toBe('keep')
 })
+
+test('keeps the data dialog within a narrow screen with a long filename and JSON', async ({ page }) => {
+  await openApp(page)
+  await page.getByRole('button', { name: 'Settings', exact: true }).click()
+  await page.getByRole('button', { name: 'Export / Import Data', exact: true }).click()
+  const dialog = page.getByRole('dialog', { name: 'Export / Import Data' })
+  await page.getByTestId('import-data-file').setInputFiles({
+    name: `${'shower-backup-'.repeat(12)}.json`,
+    mimeType: 'application/json',
+    buffer: Buffer.from('{"showers":[]}'),
+  })
+  await page.getByLabel('Or paste your export').fill(JSON.stringify({ notes: 'a'.repeat(1000) }))
+  for (const width of [320, 402]) {
+    await page.setViewportSize({ width, height: 740 })
+    await expect(async () => {
+      const box = await dialog.boundingBox()
+      expect(box!.x).toBeGreaterThanOrEqual(0)
+      expect(box!.x + box!.width).toBeLessThanOrEqual(width)
+      expect(await dialog.evaluate(element => element.scrollWidth <= element.clientWidth)).toBe(true)
+    }).toPass()
+    await expect(page.getByTestId('import-data')).toBeEnabled()
+  }
+})
